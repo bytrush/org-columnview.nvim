@@ -65,6 +65,7 @@ make format                                           # stylua
 | `summary.lua` | the summary operators |
 | `cells.lua` | cell value rendering, shared by the org and the agenda view |
 | `completion.lua` | completion source for the allowed values of a property |
+| `columns_completion.lua` | completion source for the column format in `#+COLUMNS:` / `:COLUMNS:` |
 | `config.lua` | plugin options and the default mappings |
 | `mappings.lua` | in-view mappings, the help window, registration in the nvim-orgmode mapping groups |
 | `types.lua` | LuaCATS type definitions only |
@@ -92,6 +93,11 @@ make format                                           # stylua
 - `init.lua:check_compatibility()` lists the nvim-orgmode modules the plugin
   requires and errors with a clear message when one is missing. Keep that list
   in sync when a new nvim-orgmode module is used.
+- `orgmode.completion` uses the start position of the **first** source that
+  returns one, and applies that shared base to every source. A source must
+  therefore return `nil` for lines it does not own; otherwise other sources'
+  results are filtered against the wrong prefix (this broke the second token of
+  `:COLUMNS:`).
 
 ## Conventions
 

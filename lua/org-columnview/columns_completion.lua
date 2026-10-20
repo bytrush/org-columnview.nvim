@@ -150,11 +150,25 @@ function Completion:get_results(context)
     return results
   end
 
+  -- A token can carry a width before its name (`%24ITEM`); keep it so that
+  -- completing the name does not drop the width.
+  local width = base:match('^(%%%d*)')
+  local function with_width(candidate)
+    if not width then
+      return candidate
+    end
+    return width .. candidate:sub(2)
+  end
+
   -- The special columns and the properties that are in use.
-  local results = vim.list_extend({}, COLUMN_KEYWORDS)
+  local results = {}
+  for _, column in ipairs(COLUMN_KEYWORDS) do
+    table.insert(results, with_width(column))
+  end
   for _, property in ipairs(self:_property_names()) do
-    if not vim.tbl_contains(results, property) then
-      table.insert(results, property)
+    local candidate = with_width(property)
+    if not vim.tbl_contains(results, candidate) then
+      table.insert(results, candidate)
     end
   end
 

@@ -104,17 +104,72 @@ describe('Column View Completion', function()
     vim.cmd.edit(fname)
     setup_plugin()
 
-    local function complete(line, base)
+    local function complete(line)
       vim.api.nvim_buf_set_lines(0, 5, 5, false, { line })
       vim.api.nvim_win_set_cursor(0, { 6, 0 })
       vim.cmd('normal! A')
-      org.completion:omnifunc(1, '')
-      return org.completion:omnifunc(0, base)
+      -- Derive the base from the start position, like Vim does, so that a
+      -- source claiming an earlier start cannot be hidden by a hand-made base.
+      local start = org.completion:omnifunc(1, '')
+      return org.completion:omnifunc(0, line:sub(start + 1))
     end
 
-    assert.are.same({ { menu = '[Org]', word = '%EFFORT' } }, complete(':COLUMNS: %ITEM %EFF', '%EFF'))
-    assert.are.same({ { menu = '[Org]', word = '%POINTS' } }, complete(':COLUMNS: %ITEM %POI', '%POI'))
-    assert.are.same({ { menu = '[Org]', word = '%OWNER' } }, complete(':COLUMNS: %ITEM %OWN', '%OWN'))
+    assert.are.same({ { menu = '[Org]', word = '%EFFORT' } }, complete(':COLUMNS: %ITEM %EFF'))
+    assert.are.same({ { menu = '[Org]', word = '%POINTS' } }, complete(':COLUMNS: %ITEM %POI'))
+    assert.are.same({ { menu = '[Org]', word = '%OWNER' } }, complete(':COLUMNS: %ITEM %OWN'))
+    -- A width in front of the name is preserved in the completion.
+    assert.are.same({ { menu = '[Org]', word = '%10EFFORT' } }, complete(':COLUMNS: %ITEM %10EFF'))
+  end)
+
+  it('completes a column name after a width', function()
+    helpers.create_agenda_file({
+      '* Task',
+      '  :PROPERTIES:',
+      '  :COLUMNS: %24IT',
+      '  :END:',
+    })
+    setup_plugin()
+    vim.api.nvim_win_set_cursor(0, { 3, 0 })
+    vim.cmd('normal! A')
+    local line = vim.api.nvim_get_current_line()
+    local start = org.completion:omnifunc(1, '')
+    local result = org.completion:omnifunc(0, line:sub(start + 1))
+    assert.are.same({ { menu = '[Org]', word = '%24ITEM' } }, result)
+  end)
+
+  it('completes a new column token of a drawer COLUMNS property', function()
+    helpers.create_agenda_file({
+      '* Task',
+      '  :PROPERTIES:',
+      '  :COLUMNS: %ITEM %',
+      '  :END:',
+    })
+    setup_plugin()
+    vim.api.nvim_win_set_cursor(0, { 3, 0 })
+    vim.cmd('normal! A')
+    local line = vim.api.nvim_get_current_line()
+    local start = org.completion:omnifunc(1, '')
+    local result = org.completion:omnifunc(0, line:sub(start + 1))
+    assert.are.same({
+      { menu = '[Org]', word = '%ITEM' },
+      { menu = '[Org]', word = '%TODO' },
+      { menu = '[Org]', word = '%PRIORITY' },
+      { menu = '[Org]', word = '%TAGS' },
+      { menu = '[Org]', word = '%ALLTAGS' },
+      { menu = '[Org]', word = '%CATEGORY' },
+      { menu = '[Org]', word = '%SCHEDULED' },
+      { menu = '[Org]', word = '%DEADLINE' },
+      { menu = '[Org]', word = '%CLOSED' },
+      { menu = '[Org]', word = '%CLOCKSUM' },
+      { menu = '[Org]', word = '%CLOCKSUM_T' },
+      { menu = '[Org]', word = '%AGE' },
+      { menu = '[Org]', word = '%FILE' },
+      { menu = '[Org]', word = '%BLOCKED' },
+      { menu = '[Org]', word = '%TIMESTAMP' },
+      { menu = '[Org]', word = '%TIMESTAMP_IA' },
+      -- The COLUMNS property itself is in use, so it is offered as well.
+      { menu = '[Org]', word = '%COLUMNS' },
+    }, result)
   end)
 
   it('completes the summary types of a column', function()

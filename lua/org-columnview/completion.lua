@@ -73,7 +73,11 @@ function Completion:_value_source(line)
   end
 
   local upper = name:upper()
-  if upper == 'PROPERTIES' or upper == 'END' or upper == 'LOGBOOK' or upper == 'STYLE' then
+  -- `:COLUMNS:` holds a column format, not a property value; it is completed
+  -- by the source in `columns_completion.lua`. Claiming it here would make the
+  -- shared completion start point before the format, so only the first column
+  -- token could be completed.
+  if upper == 'PROPERTIES' or upper == 'END' or upper == 'LOGBOOK' or upper == 'STYLE' or upper == 'COLUMNS' then
     return nil
   end
 
