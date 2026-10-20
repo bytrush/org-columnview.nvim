@@ -1,4 +1,5 @@
 local columnview_config = require('org-columnview.config')
+local compat = require('org-columnview.compat')
 
 ---@class OrgColumnParser
 local Parser = {}
@@ -280,7 +281,7 @@ function Parser.get_columns_format_for_headline(headline)
     parent_section = parent_section:parent()
   end
 
-  return headline.file:get_file_columns()
+  return compat.get_file_columns(headline.file)
 end
 
 ---@param headline OrgHeadline
@@ -298,7 +299,7 @@ end
 ---@param file OrgFile
 ---@return OrgColumnsDefinition|nil
 function Parser.get_columns_for_file(file)
-  local file_columns = file:get_file_columns()
+  local file_columns = compat.get_file_columns(file)
   if file_columns then
     return Parser.parse(file_columns)
   end

@@ -9,7 +9,13 @@ edited in place, and the column layout can be changed and is written back to the
 buffer, like in Emacs.
 
 This plugin requires [nvim-orgmode](https://github.com/nvim-orgmode/orgmode) for
-the org file, headline and agenda handling.
+the org file, headline and agenda handling. It works with the `master` branch
+of nvim-orgmode; no patches are needed.
+
+The plugin uses a few internal modules of nvim-orgmode (`orgmode.files`,
+`orgmode.config`, `orgmode.agenda.view.*`, `orgmode.objects.*`,
+`orgmode.org.links`), which are not a stable public API. Everything the plugin
+needs beyond that is implemented in `lua/org-columnview/compat.lua`.
 
 ## Installation
 
@@ -136,4 +142,4 @@ require('org-columnview').setup({
 The column view is a port, not a byte for byte copy. The known differences are
 tracked in the [Emacs parity backlog][parity] of the nvim-orgmode repository.
 
-[parity]: https://github.com/nvim-orgmode/orgmode/blob/master/COLUMN_VIEW_IMPLEMENTATION_PLAN.md
+[parity]: https://github.com/nvim-orgmode/org-columnview.nvim/blob/master/COLUMN_VIEW_IMPLEMENTATION_PLAN.md

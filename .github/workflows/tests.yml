@@ -44,3 +44,25 @@ jobs:
           version: ${{ matrix.version }}
       - name: Run tests
         run: make test-ci
+  tests-against-orgmode-master:
+    # The plugin must work with the nvim-orgmode master branch, not only with
+    # a version that has the column view support.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Neovim
+        uses: rhysd/action-setup-vim@v1
+        id: neovim
+        with:
+          neovim: true
+          version: v0.12.5
+      - name: Checkout nvim-orgmode master
+        uses: actions/checkout@v4
+        with:
+          repository: nvim-orgmode/orgmode
+          path: .deps/orgmode
+          ref: master
+      - name: Run tests
+        env:
+          ORGMODE_PATH: ${{ github.workspace }}/.deps/orgmode
+        run: make test-ci

@@ -5,7 +5,7 @@ local Cells = require('org-columnview.cells')
 local Parser = require('org-columnview.parser')
 local Input = require('orgmode.ui.input')
 local Headline = require('orgmode.files.headline')
-local link_utils = require('orgmode.org.links.utils')
+local compat = require('org-columnview.compat')
 
 local ColumnView = {}
 ColumnView.__index = ColumnView
@@ -73,7 +73,7 @@ function ColumnView:_resolve_allowed_values()
         local prop_val = hl:get_property(prop_name)
         if not prop_val or prop_val == '' then
           -- Fall back to file-wide `#+PROPERTY: NAME_ALL ...` / `#+NAME_ALL: ...`
-          prop_val = hl.file:get_keyword_property(prop_name)
+          prop_val = compat.get_keyword_property(hl.file, prop_name)
         end
         if prop_val and prop_val ~= '' then
           values = Parser.split_allowed_values(prop_val)
@@ -444,7 +444,7 @@ function ColumnView:_store_format()
       self.headlines[1]:set_property('COLUMNS', format)
       return
     end
-    self.file:set_file_columns(format)
+    compat.set_file_columns(self.file, format)
   end)
 end
 
@@ -606,7 +606,7 @@ function ColumnView:open_link()
   if not cell then
     return
   end
-  local url = link_utils.extract_link(cell.value)
+  local url = compat.extract_link(cell.value)
   if not url then
     return utils.echo_warning('No link at point')
   end
@@ -862,7 +862,7 @@ function ColumnView:edit_allowed()
       target = current
       break
     end
-    current = current:get_parent_headline()
+    current = compat.get_parent_headline(current)
   end
 
   -- Get current allowed values from property
@@ -913,8 +913,7 @@ function ColumnView:todo()
     return
   end
   local headline = row.headline
-  local TodoState = require('orgmode.objects.todo_state')
-  local next_state = TodoState.next_or_fast_access(headline.file:get_todo_keywords(), headline:get_todo())
+  local next_state = compat.next_todo_state(headline.file:get_todo_keywords(), headline:get_todo())
   if next_state then
     self:_write(function()
       headline:set_todo(next_state.value)

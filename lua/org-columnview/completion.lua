@@ -5,6 +5,7 @@
 ---up on the current entry, its ancestors and the file-wide
 ---`#+PROPERTY: NAME_ALL ...` / `#+NAME_ALL: ...` keywords.
 local Parser = require('org-columnview.parser')
+local compat = require('org-columnview.compat')
 
 ---@class OrgColumnViewCompletion:OrgCompletionSource
 ---@field private completion OrgCompletion
@@ -38,7 +39,7 @@ function Completion:_allowed_values_for(headline, name)
   local prop_name = name:lower() .. '_all'
   local value = headline:get_property(prop_name)
   if not value or value == '' then
-    value = headline.file:get_keyword_property(prop_name)
+    value = compat.get_keyword_property(headline.file, prop_name)
   end
   if value and value ~= '' then
     return Parser.split_allowed_values(value)

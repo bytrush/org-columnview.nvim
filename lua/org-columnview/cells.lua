@@ -3,6 +3,7 @@ local Duration = require('orgmode.objects.duration')
 local Summary = require('org-columnview.summary')
 local utils = require('orgmode.utils')
 local columnview_config = require('org-columnview.config')
+local compat = require('org-columnview.compat')
 
 ---Compute and render individual column values shared between the overlay
 ---column view (org buffer) and the agenda column view.
@@ -124,10 +125,10 @@ end
 function Cells:get_all_tags(headline)
   local tags = {}
   local own_tags = headline:get_own_tags()
-  local parent = headline:get_parent_headline()
+  local parent = compat.get_parent_headline(headline)
   while parent do
     utils.concat(tags, parent:get_own_tags())
-    parent = parent:get_parent_headline()
+    parent = compat.get_parent_headline(parent)
   end
   utils.concat(tags, headline.file:get_filetags())
   utils.concat(tags, own_tags)
@@ -151,7 +152,7 @@ function Cells:is_blocked(headline)
       return true
     end
   end
-  local parent = headline:get_parent_headline()
+  local parent = compat.get_parent_headline(headline)
   if parent and parent:get_property('ORDERED', false) ~= nil then
     for _, sibling in ipairs(parent:get_child_headlines()) do
       if not sibling:is_same(headline) and not sibling:is_done() then

@@ -1,5 +1,6 @@
 local config = require('orgmode.config')
 local columnview_config = require('org-columnview.config')
+local compat = require('org-columnview.compat')
 local AgendaView = require('orgmode.agenda.view.init')
 local AgendaLine = require('orgmode.agenda.view.line')
 local AgendaLineToken = require('orgmode.agenda.view.token')
@@ -11,7 +12,6 @@ local SortingStrategy = require('orgmode.agenda.sorting_strategy')
 local Promise = require('orgmode.utils.promise')
 local utils = require('orgmode.utils')
 local Input = require('orgmode.ui.input')
-local link_utils = require('orgmode.org.links.utils')
 
 ---Extmarks marking the currently selected cell.
 local ns = vim.api.nvim_create_namespace('orgmode_agenda_columns')
@@ -205,7 +205,7 @@ function OrgAgendaColumnsType:_resolve_allowed_values()
         local prop_val = headline:get_property(prop_name)
         if not prop_val or prop_val == '' then
           -- Fall back to file-wide `#+PROPERTY: NAME_ALL ...` / `#+NAME_ALL: ...`
-          prop_val = headline.file:get_keyword_property(prop_name)
+          prop_val = compat.get_keyword_property(headline.file, prop_name)
         end
         if prop_val and prop_val ~= '' then
           values = Parser.split_allowed_values(prop_val)
@@ -822,7 +822,7 @@ function OrgAgendaColumnsType:open_link()
   if not headline or not col then
     return
   end
-  local url = link_utils.extract_link(self:_cell_value(headline, col))
+  local url = compat.extract_link(self:_cell_value(headline, col))
   if not url then
     return utils.echo_warning('No link at point')
   end
@@ -837,8 +837,7 @@ function OrgAgendaColumnsType:todo()
   if not headline then
     return
   end
-  local TodoState = require('orgmode.objects.todo_state')
-  local next_state = TodoState.next_or_fast_access(headline.file:get_todo_keywords(), headline:get_todo())
+  local next_state = compat.next_todo_state(headline.file:get_todo_keywords(), headline:get_todo())
   if next_state then
     self:_apply_value(headline, { name = 'TODO', is_special = true }, next_state.value)
   end
@@ -947,7 +946,7 @@ function OrgAgendaColumnsType:edit_allowed()
       target = current
       break
     end
-    current = current:get_parent_headline() --[[@as OrgHeadline|nil]]
+    current = compat.get_parent_headline(current)
   end
 
   local current_allowed = vim.deepcopy(self.allowed_values[prop_name] or {})
