@@ -24,12 +24,13 @@ function M.get_parent_headline(headline)
   return require('orgmode.files.headline'):new(node, headline.file)
 end
 
----Read a file level keyword, like `#+COLUMNS:`.
+---Read a file level keyword, like `#+COLUMNS:`. Uses the un-memoized lookup
+---of nvim-orgmode, so that the value is never stale.
 ---@param file OrgFile
 ---@param name string keyword name, upper case
 ---@return string|nil
 function M.get_file_directive(file, name)
-  local value = file:get_directive(name)
+  local value = file:_get_directive(name)
   if type(value) == 'string' and vim.trim(value) ~= '' then
     return value
   end
