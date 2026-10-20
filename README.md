@@ -25,7 +25,7 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
 {
   'nvim-orgmode/orgmode',
   dependencies = {
-    'aliaksandr-trush/org-columnview.nvim',
+    'bytrush/org-columnview.nvim',
   },
   config = function()
     require('orgmode').setup()
