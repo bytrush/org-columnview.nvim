@@ -43,11 +43,15 @@ orgmode instance.
 - `org_columns` (`<prefix>xc` by default) toggles the column view in an org
   buffer. It shows the subtree of the headline under the cursor, or the whole
   file when the cursor is before the first headline.
-- `org_agenda_columns` (`<prefix>xc` by default) opens the agenda as a column
+- `org_agenda_columns` (`<prefix>ac` by default) opens the agenda as a column
   view.
 
 The prefix defaults to the prefix configured in nvim-orgmode
-(`mappings.prefix`, `<Leader>o` by default).
+(`mappings.prefix`, `<Leader>o` by default), so the defaults are `<Leader>oxc`
+for the org buffer and `<Leader>oac` for the agenda.
+
+In the agenda, `<prefix>xc` opens the column view of the agenda as well, like
+in Emacs, where the same key opens the view of the current buffer.
 
 Both entry points are registered in the mapping groups of nvim-orgmode, so they
 are attached to the org and the agenda buffer and are listed in the nvim-orgmode
@@ -136,7 +140,7 @@ require('org-columnview').setup({
   prefix = nil,
   mappings = {
     org_columns = '<prefix>xc',
-    org_agenda_columns = '<prefix>xc',
+    org_agenda_columns = '<prefix>ac',
     column_view = {
       quit = 'q',
       move_left = 'h',

@@ -157,6 +157,12 @@ M.entry_points = {
   { name = 'org_agenda_columns', category = 'agenda' },
 }
 
+---Whether the current buffer is an agenda buffer.
+---@return boolean
+local function is_agenda_buffer()
+  return vim.bo.filetype == 'orgagenda'
+end
+
 ---Register the entry points in the mapping groups of nvim-orgmode, so that
 ---they are attached to the org and agenda buffers and show up in the mapping
 ---list and in the help of nvim-orgmode.
@@ -202,6 +208,11 @@ function M.setup_entry_points()
     if keys then
       for _, key in ipairs(keys) do
         vim.keymap.set('n', M.expand_prefix(key), function()
+          if entry.name == 'org_columns' and is_agenda_buffer() then
+            -- In the agenda the column view of the agenda is opened, like in
+            -- Emacs, where the same key opens the view of the current buffer.
+            return require('org-columnview').org_agenda_columns()
+          end
           require('org-columnview')[entry.name]()
         end, { nowait = true, silent = true, desc = 'org column view' })
       end
