@@ -196,15 +196,21 @@ local function register_agenda_type()
   types.columns = require('org-columnview.agenda')
 end
 
----Register the completion source that suggests the allowed values of a
----property. The orgmode instance is recreated on every `orgmode.setup()` call,
----so the source has to be registered again for the new instance.
-local function register_completion_source()
+---Register the completion sources of the plugin: the allowed values of a
+---property and the column format of a `#+COLUMNS:` keyword. The orgmode
+---instance is recreated on every `orgmode.setup()` call, so the sources have to
+---be registered again for the new instance.
+local function register_completion_sources()
   local completion = require('orgmode').completion
-  local source = require('org-columnview.completion'):new({ completion = completion })
-  local ok, err = pcall(completion.add_source, completion, source)
-  if not ok and not tostring(err):find('already exists', 1, true) then
-    error(err)
+  local sources = {
+    require('org-columnview.completion'):new({ completion = completion }),
+    require('org-columnview.columns_completion'):new(),
+  }
+  for _, source in ipairs(sources) do
+    local ok, err = pcall(completion.add_source, completion, source)
+    if not ok and not tostring(err):find('already exists', 1, true) then
+      error(err)
+    end
   end
 end
 
@@ -250,7 +256,7 @@ function M.setup(opts)
   require('org-columnview.highlights').define()
   register_agenda_type()
   register_agenda_menu()
-  register_completion_source()
+  register_completion_sources()
   mappings.setup_entry_points()
   return M
 end

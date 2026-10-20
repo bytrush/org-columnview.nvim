@@ -2,11 +2,66 @@ local helpers = require('tests.plenary.helpers')
 local org = require('orgmode')
 
 describe('Column View Completion', function()
-  -- The plugin registers its completion source on the current orgmode
+  -- The plugin registers its completion sources on the current orgmode
   -- instance, so it has to be set up after the org files are created.
   local function setup_plugin()
     require('org-columnview').setup()
   end
+
+  local function setup_file(content)
+    -- The trailing space is needed, because the completion only looks at the
+    -- text up to the cursor.
+    helpers.create_agenda_file({ content .. ' ' })
+    setup_plugin()
+    vim.cmd('normal! A')
+  end
+
+  it('completes the column format of a COLUMNS property', function()
+    setup_file(':COLUMNS: ')
+    local result = org.completion:omnifunc(0, '')
+    assert.are.same({
+      { menu = '[Org]', word = '%ITEM' },
+      { menu = '[Org]', word = '%TODO' },
+      { menu = '[Org]', word = '%PRIORITY' },
+      { menu = '[Org]', word = '%TAGS' },
+      { menu = '[Org]', word = '%ALLTAGS' },
+      { menu = '[Org]', word = '%CATEGORY' },
+      { menu = '[Org]', word = '%SCHEDULED' },
+      { menu = '[Org]', word = '%DEADLINE' },
+      { menu = '[Org]', word = '%CLOSED' },
+      { menu = '[Org]', word = '%CLOCKSUM' },
+      { menu = '[Org]', word = '%CLOCKSUM_T' },
+      { menu = '[Org]', word = '%AGE' },
+      { menu = '[Org]', word = '%FILE' },
+      { menu = '[Org]', word = '%BLOCKED' },
+      { menu = '[Org]', word = '%TIMESTAMP' },
+      { menu = '[Org]', word = '%TIMESTAMP_IA' },
+    }, result)
+  end)
+
+  it('completes the summary types of a column', function()
+    setup_file(':COLUMNS: %Effort{')
+    local result = org.completion:omnifunc(0, '%Effort{')
+    assert.are.same({
+      { menu = '[Org]', word = '%Effort{+}' },
+      { menu = '[Org]', word = '%Effort{:}' },
+      { menu = '[Org]', word = '%Effort{:min}' },
+      { menu = '[Org]', word = '%Effort{:max}' },
+      { menu = '[Org]', word = '%Effort{:mean}' },
+      { menu = '[Org]', word = '%Effort{$}' },
+      { menu = '[Org]', word = '%Effort{min}' },
+      { menu = '[Org]', word = '%Effort{max}' },
+      { menu = '[Org]', word = '%Effort{mean}' },
+      { menu = '[Org]', word = '%Effort{X}' },
+      { menu = '[Org]', word = '%Effort{X/}' },
+      { menu = '[Org]', word = '%Effort{X%}' },
+      { menu = '[Org]', word = '%Effort{@min}' },
+      { menu = '[Org]', word = '%Effort{@max}' },
+      { menu = '[Org]', word = '%Effort{@mean}' },
+      { menu = '[Org]', word = '%Effort{est+}' },
+      { menu = '[Org]', word = '%Effort{+;%.2f}' },
+    }, result)
+  end)
 
   it('completes property values from an entry NAME_ALL property', function()
     helpers.create_agenda_file({

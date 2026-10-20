@@ -71,6 +71,72 @@ Splitting them adds indirection without benefit.
 
 ---
 
+## Migration: From nvim-orgmode to this Plugin
+
+The column view was implemented inside nvim-orgmode first (branch
+`feat/columns`) and then moved into this repository, so that a large
+feature does not have to be merged into nvim-orgmode upstream.
+
+### What moved into the plugin
+
+| Part | Location |
+|------|----------|
+| The column view of the org buffer | `lua/org-columnview/view.lua` |
+| The column view of the agenda | `lua/org-columnview/agenda.lua` |
+| The column format parser | `lua/org-columnview/parser.lua` |
+| The summary computation | `lua/org-columnview/summary.lua` |
+| The value rendering | `lua/org-columnview/cells.lua` |
+| The highlight groups | `lua/org-columnview/highlights.lua` |
+| The completion of the column format | `lua/org-columnview/columns_completion.lua` |
+| The completion of the allowed values | `lua/org-columnview/completion.lua` |
+| The options and the default mappings | `lua/org-columnview/config.lua` |
+| The in-view mappings and the help | `lua/org-columnview/mappings.lua` |
+| The helpers that nvim-orgmode does not provide | `lua/org-columnview/compat.lua` |
+
+### What stays in nvim-orgmode
+
+Only the generic parts, so that they can be merged upstream:
+
+- the agenda calls the optional `clear_mappings`/`clear_highlights` of the
+  registered view types before a view is rendered
+- the agenda view types can edit a headline through the `on_edit` hook
+- the agenda reports an error when a view type is not available
+- the priority range is always a string
+- the parent headline of an entry is nil when it has none
+- the completion of the `CATEGORY` and `REPEAT_TO_STATE` values
+- the `#+columns:`, `#+property:` and `:COLUMNS:` keywords in the
+  completion of the directives and the properties
+
+### What was dropped
+
+- [DROPPED] The column view as an agenda custom command type
+  (`org_agenda_custom_commands` with `type = 'columns'`). The agenda view
+  is opened with the `org_agenda_columns` mapping and from the agenda
+  prompt, which covers the use case. The core would have to know the
+  options of the column view for the custom command.
+- [DROPPED] The summary values are not written back to the property
+  drawer, see §1.3.
+
+### Integration with nvim-orgmode
+
+The plugin uses internal modules of nvim-orgmode:
+
+- `orgmode.files`, `orgmode.files.headline`, `orgmode.files.file` — the
+  data model
+- `orgmode.config` — todo keywords, priority range, property inheritance
+- `orgmode.agenda.types` — the view type registry, the plugin adds the
+  `columns` type to it
+- `orgmode.agenda.view.*` — the agenda view primitives
+- `orgmode.objects.*` — dates, durations, todo and priority state, help
+- `orgmode.org.links` — following links
+- `orgmode.ui.input` — the input prompt
+
+These are not a stable public API, so changes in nvim-orgmode can break
+the plugin. The test suite runs against the `master` branch of nvim-orgmode
+in CI to catch that.
+
+---
+
 ## Phase 1: Core Infrastructure
 
 ### 1.1 Column Definition Parser (`lua/org-columnview/parser.lua`) [DONE]
@@ -239,7 +305,10 @@ The original `col_view_*` names were never used.
 ### 5.2 Integration Tests [DONE]
 - `tests/plenary/org/columnview/view_spec.lua` (org buffer view)
 - `tests/plenary/agenda/types/columns_spec.lua` (agenda view)
-- `tests/plenary/org/columnview/completion_spec.lua` (allowed values)
+- `tests/plenary/org/columnview/completion_spec.lua` (allowed values, column
+  format)
+- `tests/plenary/org/columnview/mappings_spec.lua` (entry points, agenda
+  prompt menu)
 The plan's `org_buffer_spec.lua` / `agenda_spec.lua` / `editing_spec.lua`
 names do not exist; coverage lives in the files above.
 
@@ -368,6 +437,7 @@ Ordered by value per effort; update the checkbox when an item ships.
 | 8 | Tests | [DONE] |
 | 9 | Documentation | [DONE] |
 | 10 | Extraction into a separate plugin | [DONE] |
+| 10a | Migration cleanup of the core | [DONE] |
 | 11 | Emacs parity backlog | [TODO] (see [Phase 7](#phase-7-emacs-parity-backlog)) |
 
 ---
