@@ -666,6 +666,51 @@ describe('ColumnView', function()
     assert.are.equal('Bob', view.rows[2].cells[1].value)
   end)
 
+  it('defines the highlight groups of the column view', function()
+    require('org-columnview.highlights').define()
+    for _, group in ipairs({
+      '@org.column.border',
+      '@org.column.value',
+      '@org.column.header',
+      '@org.column.current',
+      '@org.column.summary',
+    }) do
+      local hl = vim.api.nvim_get_hl(0, { name = group })
+      assert.is_not_nil(hl.link, ('missing highlight group %s'):format(group))
+    end
+  end)
+
+  it('highlights the cell of the row the cursor is on', function()
+    local view = create_file_view({
+      '#+COLUMNS: %ITEM %TODO',
+      '* First',
+      '* Second',
+    })
+    view:open()
+
+    assert.are.equal(1, view.current_row)
+
+    vim.api.nvim_win_set_cursor(0, { 3, 0 })
+    view:_sync_current_cell()
+
+    assert.are.equal(2, view.current_row)
+
+    -- The cell of the current row is highlighted.
+    local marks = vim.api.nvim_buf_get_extmarks(view.bufnr, view.ns, 0, -1, { details = true })
+    local highlighted = {}
+    for _, mark in ipairs(marks) do
+      for _, chunk in ipairs(mark[4].virt_text or {}) do
+        if chunk[2] == '@org.column.current' then
+          highlighted[mark[2]] = true
+        end
+      end
+    end
+    assert.is_true(highlighted[2] or false)
+    assert.is_nil(highlighted[1])
+
+    view:quit()
+  end)
+
   it('renders a time summary for the ":" summary type', function()
     local view = create_view({
       '* Parent',

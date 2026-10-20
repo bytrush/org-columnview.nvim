@@ -105,7 +105,11 @@ end
 
 ---Open the agenda as a column view.
 function M.org_agenda_columns()
-  require('orgmode').action('agenda.columns')
+  local agenda = require('orgmode').agenda
+  if agenda.columns then
+    return agenda:columns()
+  end
+  return agenda:open_view('columns')
 end
 
 ---Check that the installed nvim-orgmode has everything the plugin needs. The
@@ -199,6 +203,7 @@ end
 function M.setup(opts)
   check_compatibility()
   config.setup(opts)
+  require('org-columnview.highlights').define()
   register_agenda_type()
   register_completion_source()
   mappings.setup_entry_points()

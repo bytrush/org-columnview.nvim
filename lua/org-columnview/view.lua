@@ -216,6 +216,14 @@ function ColumnView:open()
       end)
     end,
   })
+
+  -- Highlight the cell the cursor is on.
+  self._cursor_autocmd_id = vim.api.nvim_create_autocmd('CursorMoved', {
+    buffer = self.bufnr,
+    callback = function()
+      self:_sync_current_cell()
+    end,
+  })
 end
 
 function ColumnView:_setup_mappings()
@@ -355,9 +363,98 @@ function ColumnView:_highlight_current_cell()
   -- Current cell highlighting is handled in _build_virt_text
 end
 
+---The screen column where the given column of the table starts.
+---@param col_idx number
+---@return number
+function ColumnView:_cell_start_col(col_idx)
+  local start = 1
+  for i = 1, col_idx - 1 do
+    start = start + (self:_get_width(i) or 0) + 3
+  end
+  return start
+end
+
+---The column of the table that the given screen column belongs to.
+---@param vcol number screen column, 1 based
+---@return number
+function ColumnView:_column_at(vcol)
+  local block_start = 1
+  for i = 1, #self.columns do
+    local width = self:_get_width(i) or 0
+    if vcol <= block_start + width + 2 then
+      return i
+    end
+    block_start = block_start + width + 3
+  end
+  return #self.columns
+end
+
+---Move the cursor to the given cell of the table. The cursor cannot always
+---reach the cell, because the table is wider than the headline text, so it
+---is clamped to the end of the line.
+---@param row_idx number
+---@param col_idx number
+function ColumnView:_goto_cell(row_idx, col_idx)
+  local row = self.rows[row_idx]
+  if not row or not self.winid or not vim.api.nvim_win_is_valid(self.winid) then
+    return
+  end
+  local line = row.headline:get_range().start_line
+  local start = self:_cell_start_col(col_idx)
+  local line_vcol = vim.fn.virtcol({ line, '$' }) --[[@as number]]
+  local vcol = math.min(start + 1, math.max(1, line_vcol))
+  local ok, byte = pcall(vim.fn.virtcol2col, 0, line, vcol)
+  if not ok or not byte or byte < 1 then
+    byte = 1
+  end
+  pcall(vim.api.nvim_win_set_cursor, self.winid, { line, byte - 1 })
+end
+
+---Follow the cursor: the current row is the row of the headline the cursor is
+---on. The column is only taken from the cursor when it moves to another row,
+---because the cursor cannot reach the columns that are wider than the headline
+---text.
+---@private
+function ColumnView:_sync_current_cell()
+  if not self.winid or not vim.api.nvim_win_is_valid(self.winid) then
+    return
+  end
+  if vim.api.nvim_win_get_buf(self.winid) ~= self.bufnr then
+    return
+  end
+
+  local cursor = vim.api.nvim_win_get_cursor(self.winid)
+  local line = cursor[1]
+  local row_idx
+  for idx, row in ipairs(self.rows) do
+    if row.headline:get_range().start_line == line then
+      row_idx = idx
+      break
+    end
+  end
+  if not row_idx then
+    return
+  end
+
+  local changed = row_idx ~= self.current_row
+  self.current_row = row_idx
+
+  if changed then
+    local vcol = vim.api.nvim_win_call(self.winid, function()
+      return vim.fn.virtcol('.') --[[@as number]]
+    end)
+    self.current_col = self:_column_at(vcol)
+  end
+
+  if changed then
+    self:_render()
+  end
+end
+
 function ColumnView:move_left()
   if self.current_col > 1 then
     self.current_col = self.current_col - 1
+    self:_goto_cell(self.current_row, self.current_col)
     self:_render()
   end
 end
@@ -365,6 +462,7 @@ end
 function ColumnView:move_right()
   if self.current_col < #self.columns then
     self.current_col = self.current_col + 1
+    self:_goto_cell(self.current_row, self.current_col)
     self:_render()
   end
 end
@@ -385,8 +483,7 @@ function ColumnView:move_up()
     idx = idx - 1
     if self:_is_row_visible(self.rows[idx]) then
       self.current_row = idx
-      local line = self.rows[idx].headline:get_range().start_line
-      vim.api.nvim_win_set_cursor(self.winid, { line, 0 })
+      self:_goto_cell(idx, self.current_col)
       self:_render()
       return
     end
@@ -399,8 +496,7 @@ function ColumnView:move_down()
     idx = idx + 1
     if self:_is_row_visible(self.rows[idx]) then
       self.current_row = idx
-      local line = self.rows[idx].headline:get_range().start_line
-      vim.api.nvim_win_set_cursor(self.winid, { line, 0 })
+      self:_goto_cell(idx, self.current_col)
       self:_render()
       return
     end
@@ -793,6 +889,10 @@ function ColumnView:quit()
   if self._leave_autocmd_id then
     pcall(vim.api.nvim_del_autocmd, self._leave_autocmd_id)
     self._leave_autocmd_id = nil
+  end
+  if self._cursor_autocmd_id then
+    pcall(vim.api.nvim_del_autocmd, self._cursor_autocmd_id)
+    self._cursor_autocmd_id = nil
   end
   vim.api.nvim_buf_clear_namespace(self.bufnr, self.ns, 0, -1)
   if self.winid and vim.api.nvim_win_is_valid(self.winid) then

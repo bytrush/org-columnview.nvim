@@ -58,6 +58,22 @@ describe('Column View Mappings', function()
     assert.is_true(found)
   end)
 
+  it('opens the agenda column view through the agenda view type', function()
+    local agenda = require('orgmode').agenda
+    local original = agenda.open_view
+    local called
+    agenda.open_view = function(self, type)
+      called = type
+      return 'opened'
+    end
+
+    local result = require('org-columnview').org_agenda_columns()
+    agenda.open_view = original
+
+    assert.are.equal('columns', called)
+    assert.are.equal('opened', result)
+  end)
+
   it('keeps a mapping that is configured in nvim-orgmode', function()
     local config = require('orgmode.config')
     local original = config.opts.mappings.org.org_columns
