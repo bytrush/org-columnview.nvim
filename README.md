@@ -49,6 +49,15 @@ orgmode instance.
 The prefix defaults to the prefix configured in nvim-orgmode
 (`mappings.prefix`, `<Leader>o` by default).
 
+Both entry points are registered in the mapping groups of nvim-orgmode, so they
+are attached to the org and the agenda buffer and are listed in the nvim-orgmode
+help (`g?`). A global mapping is set as well, so that the column view can also
+be opened from a buffer that was opened before the plugin was loaded.
+
+The column format is read from the `COLUMNS` property of the headline or one of
+its ancestors, from the `#+COLUMNS:` keyword of the file, or from the
+`default_format` option. Without any of them the view is not shown.
+
 ## Mappings
 
 While the column view is active, these buffer local mappings are available:

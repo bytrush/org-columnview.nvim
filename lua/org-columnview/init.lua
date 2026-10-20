@@ -108,6 +108,39 @@ function M.org_agenda_columns()
   require('orgmode').action('agenda.columns')
 end
 
+---Check that the installed nvim-orgmode has everything the plugin needs. The
+---plugin uses internal modules of nvim-orgmode, so a version that is too old
+---or too different is reported with a clear message instead of failing later
+---with an obscure error.
+---@private
+local function check_compatibility()
+  local required = {
+    'orgmode.files',
+    'orgmode.config',
+    'orgmode.agenda.types',
+    'orgmode.agenda.view.init',
+    'orgmode.agenda.view.line',
+    'orgmode.agenda.view.token',
+    'orgmode.objects.todo_state',
+    'orgmode.objects.priority_state',
+    'orgmode.org.links',
+  }
+  local missing = {}
+  for _, module in ipairs(required) do
+    local ok = pcall(require, module)
+    if not ok then
+      table.insert(missing, module)
+    end
+  end
+
+  if #missing > 0 then
+    error(
+      ('org-columnview.nvim requires a compatible nvim-orgmode, missing: %s'):format(table.concat(missing, ', ')),
+      0
+    )
+  end
+end
+
 ---Register the agenda view type, so that the agenda can be rendered as a
 ---column view.
 local function register_agenda_type()
@@ -164,6 +197,7 @@ end
 ---Setup the plugin.
 ---@param opts? OrgColumnViewConfigOpts
 function M.setup(opts)
+  check_compatibility()
   config.setup(opts)
   register_agenda_type()
   register_completion_source()

@@ -150,17 +150,59 @@ function M._setup_select_value(view, bufnr, keys, attached)
   end
 end
 
+---The entry points of the plugin and the nvim-orgmode mapping group they
+---belong to.
+M.entry_points = {
+  { name = 'org_columns', category = 'org' },
+  { name = 'org_agenda_columns', category = 'agenda' },
+}
+
+---Register the entry points in the mapping groups of nvim-orgmode, so that
+---they are attached to the org and agenda buffers and show up in the mapping
+---list and in the help of nvim-orgmode.
+---@param entry { name: string, category: string }
+function M.register_core_mapping(entry)
+  local MapEntry = require('orgmode.config.mappings.map_entry')
+  local core_mappings = require('orgmode.config.mappings')
+  local core_defaults = require('orgmode.config.defaults')
+  local core_config = require('orgmode.config')
+
+  core_mappings[entry.category] = core_mappings[entry.category] or {}
+  if not core_mappings[entry.category][entry.name] then
+    core_mappings[entry.category][entry.name] = MapEntry:new(
+      ('<cmd>lua require("org-columnview").%s()<CR>'):format(entry.name),
+      { opts = { desc = 'org column view', help_desc = 'Show the column view' } }
+    )
+  end
+
+  core_defaults.mappings[entry.category] = core_defaults.mappings[entry.category] or {}
+  if not core_defaults.mappings[entry.category][entry.name] then
+    core_defaults.mappings[entry.category][entry.name] = config.defaults.mappings[entry.name]
+  end
+
+  -- A mapping configured for the plugin wins over the default, but a mapping
+  -- that is already configured in nvim-orgmode is left alone.
+  local user_mappings = core_config.opts.mappings[entry.category]
+  local plugin_mapping = config.get_mappings()[entry.name]
+  if plugin_mapping and (not user_mappings or user_mappings[entry.name] == nil) then
+    core_config.opts.mappings[entry.category] = user_mappings or {}
+    core_config.opts.mappings[entry.category][entry.name] = plugin_mapping
+  end
+end
+
 ---Attach the global mappings that open the column view.
 function M.setup_entry_points()
   local mappings = config.get_mappings()
   local defaults = config.defaults.mappings
 
-  for _, name in ipairs({ 'org_columns', 'org_agenda_columns' }) do
-    local keys = to_keys(mappings[name] ~= nil and mappings[name] or defaults[name])
+  for _, entry in ipairs(M.entry_points) do
+    M.register_core_mapping(entry)
+
+    local keys = to_keys(mappings[entry.name] ~= nil and mappings[entry.name] or defaults[entry.name])
     if keys then
       for _, key in ipairs(keys) do
         vim.keymap.set('n', M.expand_prefix(key), function()
-          require('org-columnview')[name]()
+          require('org-columnview')[entry.name]()
         end, { nowait = true, silent = true, desc = 'org column view' })
       end
     end
