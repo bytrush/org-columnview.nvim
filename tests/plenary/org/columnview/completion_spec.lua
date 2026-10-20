@@ -83,7 +83,38 @@ describe('Column View Completion', function()
       { menu = '[Org]', word = '%BLOCKED' },
       { menu = '[Org]', word = '%TIMESTAMP' },
       { menu = '[Org]', word = '%TIMESTAMP_IA' },
+      -- The property of the drawer is completed as well.
+      { menu = '[Org]', word = '%COLUMNS' },
     }, result)
+  end)
+
+  it('completes the column format with the properties that are in use', function()
+    local fname = vim.fn.tempname() .. '.org'
+    vim.fn.writefile({
+      '* Task',
+      '  :PROPERTIES:',
+      '  :EFFORT: 5',
+      '  :POINTS: 3',
+      '  :END:',
+      '* Other',
+      '  :PROPERTIES:',
+      '  :OWNER: Bob',
+      '  :END:',
+    }, fname)
+    vim.cmd.edit(fname)
+    setup_plugin()
+
+    local function complete(line, base)
+      vim.api.nvim_buf_set_lines(0, 5, 5, false, { line })
+      vim.api.nvim_win_set_cursor(0, { 6, 0 })
+      vim.cmd('normal! A')
+      org.completion:omnifunc(1, '')
+      return org.completion:omnifunc(0, base)
+    end
+
+    assert.are.same({ { menu = '[Org]', word = '%EFFORT' } }, complete(':COLUMNS: %ITEM %EFF', '%EFF'))
+    assert.are.same({ { menu = '[Org]', word = '%POINTS' } }, complete(':COLUMNS: %ITEM %POI', '%POI'))
+    assert.are.same({ { menu = '[Org]', word = '%OWNER' } }, complete(':COLUMNS: %ITEM %OWN', '%OWN'))
   end)
 
   it('completes the summary types of a column', function()

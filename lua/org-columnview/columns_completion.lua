@@ -2,6 +2,9 @@
 ---property.
 ---@class OrgColumnViewColumnsCompletion:OrgCompletionSource
 ---@field private directive_pattern vim.regex
+---@field private keyword_pattern vim.regex
+---@field private property_pattern vim.regex
+---@field private completion OrgCompletion
 local Completion = {}
 Completion.__index = Completion
 
@@ -44,8 +47,9 @@ local SUMMARY_TYPES = {
   '+;%.2f',
 }
 
-function Completion:new()
+function Completion:new(opts)
   return setmetatable({
+    completion = opts.completion,
     directive_pattern = vim.regex([[\c^\s*\(\#+columns:\|:columns:\)\s]]),
     keyword_pattern = vim.regex([[\c^\s*\#+\?\w*$]]),
     property_pattern = vim.regex([[\c^\s*:\w*$]]),
@@ -54,6 +58,52 @@ end
 
 function Completion:get_name()
   return 'columnview_columns'
+end
+
+---The property names that are in use, to complete the column format with them.
+---The properties of the current file are used, and, in the agenda, the
+---properties of the entries that are loaded.
+---@return string[]
+function Completion:_property_names()
+  local names = {}
+  local seen = {}
+
+  local function add(name)
+    if not name or name == '' then
+      return
+    end
+    local upper = name:upper()
+    if not seen[upper] then
+      seen[upper] = true
+      table.insert(names, '%' .. upper)
+    end
+  end
+
+  local files = self.completion.files
+  -- The current file is not an org file in the agenda, where the assertion of
+  -- the lookup would fail.
+  local ok, current = pcall(function()
+    return files:get_current_file()
+  end)
+  if not ok then
+    current = nil
+  end
+  local orgfiles = current and { current } or files:all()
+
+  for _, orgfile in ipairs(orgfiles) do
+    for name in pairs(orgfile:get_directive_properties() or {}) do
+      add(name)
+    end
+    local headlines = current and orgfile:get_headlines() or orgfile:get_opened_headlines()
+    for _, headline in ipairs(headlines or {}) do
+      for name in pairs(headline:get_own_properties() or {}) do
+        add(name)
+      end
+    end
+  end
+
+  table.sort(names)
+  return names
 end
 
 ---@param context OrgCompletionContext
@@ -100,7 +150,15 @@ function Completion:get_results(context)
     return results
   end
 
-  return COLUMN_KEYWORDS
+  -- The special columns and the properties that are in use.
+  local results = vim.list_extend({}, COLUMN_KEYWORDS)
+  for _, property in ipairs(self:_property_names()) do
+    if not vim.tbl_contains(results, property) then
+      table.insert(results, property)
+    end
+  end
+
+  return results
 end
 
 return Completion

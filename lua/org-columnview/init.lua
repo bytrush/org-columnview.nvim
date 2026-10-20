@@ -232,7 +232,7 @@ local function register_completion_sources()
   local completion = require('orgmode').completion
   local sources = {
     require('org-columnview.completion'):new({ completion = completion }),
-    require('org-columnview.columns_completion'):new(),
+    require('org-columnview.columns_completion'):new({ completion = completion }),
   }
   for _, source in ipairs(sources) do
     local ok, err = pcall(completion.add_source, completion, source)
