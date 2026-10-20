@@ -16,9 +16,56 @@ describe('Column View Completion', function()
     vim.cmd('normal! A')
   end
 
+  it('completes the #+columns keyword', function()
+    setup_file('#+col')
+    local result = org.completion:omnifunc(0, '#+col')
+    assert.are.same({
+      { menu = '[Org]', word = '#+columns' },
+    }, result)
+  end)
+
+  it('completes the COLUMNS property', function()
+    setup_file(':COL')
+    local result = org.completion:omnifunc(0, ':COL')
+    assert.are.same({
+      { menu = '[Org]', word = ':COLUMNS:' },
+    }, result)
+  end)
+
   it('completes the column format of a COLUMNS property', function()
     setup_file(':COLUMNS: ')
     local result = org.completion:omnifunc(0, '')
+    assert.are.same({
+      { menu = '[Org]', word = '%ITEM' },
+      { menu = '[Org]', word = '%TODO' },
+      { menu = '[Org]', word = '%PRIORITY' },
+      { menu = '[Org]', word = '%TAGS' },
+      { menu = '[Org]', word = '%ALLTAGS' },
+      { menu = '[Org]', word = '%CATEGORY' },
+      { menu = '[Org]', word = '%SCHEDULED' },
+      { menu = '[Org]', word = '%DEADLINE' },
+      { menu = '[Org]', word = '%CLOSED' },
+      { menu = '[Org]', word = '%CLOCKSUM' },
+      { menu = '[Org]', word = '%CLOCKSUM_T' },
+      { menu = '[Org]', word = '%AGE' },
+      { menu = '[Org]', word = '%FILE' },
+      { menu = '[Org]', word = '%BLOCKED' },
+      { menu = '[Org]', word = '%TIMESTAMP' },
+      { menu = '[Org]', word = '%TIMESTAMP_IA' },
+    }, result)
+  end)
+
+  it('completes the column format of a COLUMNS property in a drawer', function()
+    helpers.create_agenda_file({
+      '* Task',
+      '  :PROPERTIES:',
+      '  :COLUMNS: %',
+      '  :END:',
+    })
+    setup_plugin()
+    vim.api.nvim_win_set_cursor(0, { 3, 0 })
+    vim.cmd('normal! A')
+    local result = org.completion:omnifunc(0, '%')
     assert.are.same({
       { menu = '[Org]', word = '%ITEM' },
       { menu = '[Org]', word = '%TODO' },

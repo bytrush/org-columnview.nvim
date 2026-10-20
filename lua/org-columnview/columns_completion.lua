@@ -47,7 +47,8 @@ local SUMMARY_TYPES = {
 function Completion:new()
   return setmetatable({
     directive_pattern = vim.regex([[\c^\s*\(\#+columns:\|:columns:\)\s]]),
-    keyword_pattern = vim.regex([[\c^\s*\#\+[\w-]*$]]),
+    keyword_pattern = vim.regex([[\c^\s*\#+\?\w*$]]),
+    property_pattern = vim.regex([[\c^\s*:\w*$]]),
   }, Completion)
 end
 
@@ -59,8 +60,8 @@ end
 ---@return number | nil
 function Completion:get_start(context)
   if not self.directive_pattern:match_str(context.line) then
-    -- The keyword itself, e.g. `#+col`.
-    if self.keyword_pattern:match_str(context.line) then
+    -- The keyword itself, e.g. `#+col` or `:COL`.
+    if self.keyword_pattern:match_str(context.line) or self.property_pattern:match_str(context.line) then
       local prefix = context.line:match('^(.-)%S*$')
       return #prefix
     end
@@ -77,10 +78,13 @@ end
 function Completion:get_results(context)
   local base = context.base or ''
 
-  -- The `#+columns:` keyword itself.
+  -- The `#+columns:` keyword and the `:COLUMNS:` property itself.
   if not self.directive_pattern:match_str(context.line) then
-    if base:match('^#+col') then
+    if base:lower():find('#+col', 1, true) == 1 then
       return { '#+columns' }
+    end
+    if base:lower():find(':col', 1, true) == 1 and self.property_pattern:match_str(context.line) then
+      return { ':COLUMNS:' }
     end
     return {}
   end
