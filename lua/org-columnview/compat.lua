@@ -7,6 +7,18 @@
 ---so that the plugin works with any nvim-orgmode version.
 local M = {}
 
+---The priority range of the configuration. The values are always strings, so
+---that a priority configured as a number works as well.
+---@return { highest: string, default: string, lowest: string }
+function M.get_priority_range()
+  local range = require('orgmode.config'):get_priority_range()
+  return {
+    highest = tostring(range.highest),
+    default = tostring(range.default),
+    lowest = tostring(range.lowest),
+  }
+end
+
 ---The parent headline of an entry, or nil when the entry has no parent
 ---headline. nvim-orgmode returns a headline without a node in that case, which
 ---breaks everything that is done with it.

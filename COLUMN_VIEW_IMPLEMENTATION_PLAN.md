@@ -95,17 +95,21 @@ feature does not have to be merged into nvim-orgmode upstream.
 
 ### What stays in nvim-orgmode
 
-Only the generic parts, so that they can be merged upstream:
+**Nothing.** nvim-orgmode is used as it is, from its `master` branch. The
+plugin does not need any change in the core, it works around the missing
+pieces itself:
 
-- the agenda calls the optional `clear_mappings`/`clear_highlights` of the
-  registered view types before a view is rendered
-- the agenda view types can edit a headline through the `on_edit` hook
-- the agenda reports an error when a view type is not available
-- the priority range is always a string
-- the parent headline of an entry is nil when it has none
-- the completion of the `CATEGORY` and `REPEAT_TO_STATE` values
-- the `#+columns:`, `#+property:` and `:COLUMNS:` keywords in the
-  completion of the directives and the properties
+- the agenda does not call `clear_mappings`/`clear_highlights` of the view
+  types, so the plugin wraps `Agenda:render` to clean up its own mappings
+  and highlights
+- the agenda does not provide the `on_edit` hook, so the plugin updates the
+  file and reloads the agenda itself
+- the parent headline of an entry can be a headline without a node, so the
+  plugin walks the parents itself
+- the priority range can hold numbers, so the plugin converts the values
+  to strings
+- the `#+columns:` keyword is not in the completion of the directives, so
+  the plugin adds it
 
 ### What was dropped
 
@@ -119,7 +123,8 @@ Only the generic parts, so that they can be merged upstream:
 
 ### Integration with nvim-orgmode
 
-The plugin uses internal modules of nvim-orgmode:
+nvim-orgmode is used unchanged, from its `master` branch. The plugin uses
+these internal modules:
 
 - `orgmode.files`, `orgmode.files.headline`, `orgmode.files.file` — the
   data model
@@ -134,6 +139,10 @@ The plugin uses internal modules of nvim-orgmode:
 These are not a stable public API, so changes in nvim-orgmode can break
 the plugin. The test suite runs against the `master` branch of nvim-orgmode
 in CI to catch that.
+
+The work that was done on the `feat/columns` branch of nvim-orgmode is kept
+in the tag `archive/feat-columns` of the nvim-orgmode repository, the branch
+itself was dropped.
 
 ---
 

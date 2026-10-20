@@ -665,7 +665,7 @@ function OrgAgendaColumnsType:_allowed_values_for(col)
     end
     return values
   elseif col.name == 'PRIORITY' then
-    local range = config:get_priority_range()
+    local range = compat.get_priority_range()
     local PriorityState = require('orgmode.objects.priority_state')
     local values = {}
     local current = PriorityState:new(range.highest, range)
@@ -709,8 +709,15 @@ function OrgAgendaColumnsType:_apply_value(headline, col, value)
   if self.on_edit then
     self.on_edit(headline, setter)
   else
-    setter(headline)
-    self:_refresh_row(headline)
+    -- nvim-orgmode does not provide the hook, so the file is updated and the
+    -- agenda is reloaded here.
+    headline.file
+      :update(function()
+        setter(headline)
+      end)
+      :next(function()
+        return require('orgmode').agenda:redo('remote_edit', true)
+      end)
   end
 end
 
@@ -769,7 +776,7 @@ function OrgAgendaColumnsType:_change_value(direction)
     return
   elseif col.name == 'PRIORITY' then
     local PriorityState = require('orgmode.objects.priority_state')
-    local ps = PriorityState:new(headline:get_priority(), config:get_priority_range())
+    local ps = PriorityState:new(headline:get_priority(), compat.get_priority_range())
     local value = direction > 0 and ps:increase() or ps:decrease()
     self:_apply_value(headline, col, value)
     return
@@ -876,7 +883,7 @@ function OrgAgendaColumnsType:edit_value()
     return
   elseif col.name == 'PRIORITY' then
     local PriorityState = require('orgmode.objects.priority_state')
-    local ps = PriorityState:new(headline:get_priority(), config:get_priority_range())
+    local ps = PriorityState:new(headline:get_priority(), compat.get_priority_range())
     local new_prio = ps:prompt_user()
     if new_prio then
       self:_apply_value(headline, col, new_prio)

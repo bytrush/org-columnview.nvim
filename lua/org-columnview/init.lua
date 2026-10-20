@@ -189,6 +189,34 @@ local function register_agenda_menu()
   end
 end
 
+---Clean up the buffer local mappings and highlights of the column view when
+---the agenda is rendered, so that they do not leak into the other agenda
+---views. nvim-orgmode has no hook for that, so the render method is wrapped.
+---@private
+local function register_agenda_cleanup()
+  local Agenda = require('orgmode.agenda')
+  if Agenda._org_columnview_cleanup then
+    return
+  end
+  Agenda._org_columnview_cleanup = true
+
+  local original = Agenda.render
+  Agenda.render = function(self)
+    local win = self:_get_window()
+    if win then
+      local bufnr = vim.api.nvim_win_get_buf(win)
+      local columns = require('orgmode.agenda.types').columns
+      if columns.clear_mappings then
+        columns.clear_mappings(bufnr)
+      end
+      if columns.clear_highlights then
+        columns.clear_highlights(bufnr)
+      end
+    end
+    return original(self)
+  end
+end
+
 ---Register the agenda view type, so that the agenda can be rendered as a
 ---column view.
 local function register_agenda_type()
@@ -256,6 +284,7 @@ function M.setup(opts)
   require('org-columnview.highlights').define()
   register_agenda_type()
   register_agenda_menu()
+  register_agenda_cleanup()
   register_completion_sources()
   mappings.setup_entry_points()
   return M

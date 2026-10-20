@@ -25,7 +25,7 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
 {
   'nvim-orgmode/orgmode',
   dependencies = {
-    'nvim-orgmode/org-columnview.nvim',
+    'aliaksandr-trush/org-columnview.nvim',
   },
   config = function()
     require('orgmode').setup()
@@ -153,9 +153,13 @@ require('org-columnview').setup({
 })
 ```
 
+## Help
+
+The full documentation is in the help file: `:help org-columnview`.
+
 ## Differences to Emacs
 
 The column view is a port, not a byte for byte copy. The known differences are
-tracked in the [Emacs parity backlog][parity] of the nvim-orgmode repository.
+tracked in the [Emacs parity backlog][parity] of this repository.
 
 [parity]: https://github.com/nvim-orgmode/org-columnview.nvim/blob/master/COLUMN_VIEW_IMPLEMENTATION_PLAN.md

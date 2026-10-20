@@ -11,20 +11,35 @@ describe('Agenda Columns Type', function()
     helpers.create_agenda_file(content)
     local bufnr = vim.api.nvim_create_buf(false, true)
     local view
-    view = OrgAgendaColumnsType:new({
-      files = org.files,
-      highlighter = org.highlighter,
-      agenda_filter = org.agenda.filters,
-      overriding_columns_format = opts.overriding_columns_format or nil,
-      remove_tags = opts.remove_tags,
-      on_edit = opts.on_edit or function(headline, setter)
+    -- `on_edit = false` builds a view without the edit hook, like nvim-orgmode
+    -- provides it.
+    local on_edit = opts.on_edit
+    if on_edit == false then
+      on_edit = nil
+    elseif not on_edit then
+      on_edit = function(headline, setter)
         headline.file
           :update(function()
             setter(headline)
           end)
           :wait()
         view:render(bufnr)
-      end,
+      end
+    end
+    view = OrgAgendaColumnsType:new({
+      files = org.files,
+      highlighter = org.highlighter,
+      agenda_filter = org.agenda.filters,
+      overriding_columns_format = opts.overriding_columns_format or nil,
+      remove_tags = opts.remove_tags,
+      on_edit = opts.on_edit == false and nil or (opts.on_edit or function(headline, setter)
+        headline.file
+          :update(function()
+            setter(headline)
+          end)
+          :wait()
+        view:render(bufnr)
+      end),
     })
     view:prepare():wait()
     view:render(bufnr)
@@ -248,6 +263,23 @@ describe('Agenda Columns Type', function()
     view:select_value(2)
     local updated = view.headlines[headline_index(view, 'Todo Probe')]
     assert.are.equal('DONE', updated:get_todo())
+  end)
+
+  it('writes the value to the file without the edit hook of nvim-orgmode', function()
+    local view = build_view({ '* Hook Probe' }, {
+      overriding_columns_format = '%25ITEM %TODO',
+      on_edit = false,
+    })
+    local file = view.headlines[headline_index(view, 'Hook Probe')].file
+    view.current_row = headline_index(view, 'Hook Probe')
+    view.current_col = column_index(view, 'TODO')
+
+    view:select_value(2)
+    vim.wait(1000, function()
+      return file:get_headlines()[1]:get_todo() == 'DONE'
+    end, 50)
+
+    assert.are.equal('DONE', file:get_headlines()[1]:get_todo())
   end)
 
   it('cycles a TODO value with next_value', function()

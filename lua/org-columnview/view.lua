@@ -730,7 +730,7 @@ function ColumnView:_allowed_values_for(col)
     end
     return values
   elseif col.name == 'PRIORITY' then
-    local range = config:get_priority_range()
+    local range = compat.get_priority_range()
     local PriorityState = require('orgmode.objects.priority_state')
     local values = {}
     local current = PriorityState:new(range.highest, range)
@@ -819,7 +819,7 @@ function ColumnView:_change_value(direction)
     return
   elseif col.name == 'PRIORITY' then
     local PriorityState = require('orgmode.objects.priority_state')
-    local ps = PriorityState:new(headline:get_priority(), config:get_priority_range())
+    local ps = PriorityState:new(headline:get_priority(), compat.get_priority_range())
     local value = direction > 0 and ps:increase() or ps:decrease()
     self:_write(function()
       headline:set_priority(value)
@@ -1051,7 +1051,7 @@ function ColumnView:edit_value()
     return
   elseif col.name == 'PRIORITY' then
     local PriorityState = require('orgmode.objects.priority_state')
-    local ps = PriorityState:new(headline:get_priority(), config:get_priority_range())
+    local ps = PriorityState:new(headline:get_priority(), compat.get_priority_range())
     local new_prio = ps:prompt_user()
     if new_prio then
       self:_write(function()

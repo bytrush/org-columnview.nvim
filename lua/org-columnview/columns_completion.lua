@@ -47,6 +47,7 @@ local SUMMARY_TYPES = {
 function Completion:new()
   return setmetatable({
     directive_pattern = vim.regex([[\c^\s*\(\#+columns:\|:columns:\)\s]]),
+    keyword_pattern = vim.regex([[\c^\s*\#\+[\w-]*$]]),
   }, Completion)
 end
 
@@ -58,6 +59,11 @@ end
 ---@return number | nil
 function Completion:get_start(context)
   if not self.directive_pattern:match_str(context.line) then
+    -- The keyword itself, e.g. `#+col`.
+    if self.keyword_pattern:match_str(context.line) then
+      local prefix = context.line:match('^(.-)%S*$')
+      return #prefix
+    end
     return nil
   end
 
@@ -70,6 +76,14 @@ end
 ---@return string[]
 function Completion:get_results(context)
   local base = context.base or ''
+
+  -- The `#+columns:` keyword itself.
+  if not self.directive_pattern:match_str(context.line) then
+    if base:match('^#+col') then
+      return { '#+columns' }
+    end
+    return {}
+  end
 
   -- When a token is opened with `{`, offer the summary forms for it, e.g.
   -- `%Effort{` -> `%Effort{+}`.
