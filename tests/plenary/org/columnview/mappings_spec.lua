@@ -85,6 +85,15 @@ describe('Column View Mappings', function()
     assert.are.equal('opened', result)
   end)
 
+  it('adds the column view to the agenda prompt menu', function()
+    local agenda = require('orgmode').agenda
+    local menu = agenda:_build_menu()
+    local entry = menu:get_entry_by_key('c')
+
+    assert.is_not_nil(entry)
+    assert.are.equal('Column view of all entries', entry.label)
+  end)
+
   it('keeps a mapping that is configured in nvim-orgmode', function()
     local config = require('orgmode.config')
     local original = config.opts.mappings.org.org_columns

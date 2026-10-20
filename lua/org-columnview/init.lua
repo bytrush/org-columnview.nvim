@@ -145,6 +145,50 @@ local function check_compatibility()
   end
 end
 
+---Add the column view to the agenda prompt menu, so that it can be opened
+---with the `c` key of the menu. The menu of nvim-orgmode has no hook for
+---additional entries, so the method that builds it is wrapped.
+---@private
+local function register_agenda_menu()
+  local Agenda = require('orgmode.agenda')
+  if Agenda._org_columnview_menu then
+    return
+  end
+  Agenda._org_columnview_menu = true
+
+  local original = Agenda._build_menu
+  Agenda._build_menu = function(self)
+    local menu = original(self)
+    for _, item in ipairs(menu.items) do
+      if item.key == 'c' then
+        -- nvim-orgmode provides the column view itself.
+        return menu
+      end
+    end
+
+    local option = {
+      label = 'Column view of all entries',
+      key = 'c',
+      action = function()
+        return M.org_agenda_columns()
+      end,
+    }
+
+    -- The entry is placed after the search entry, like it was in the column
+    -- view branch of nvim-orgmode.
+    local index = #menu.items + 1
+    for i, item in ipairs(menu.items) do
+      if item.key == 's' then
+        index = i + 1
+        break
+      end
+    end
+    table.insert(menu.items, index, option)
+
+    return menu
+  end
+end
+
 ---Register the agenda view type, so that the agenda can be rendered as a
 ---column view.
 local function register_agenda_type()
@@ -205,6 +249,7 @@ function M.setup(opts)
   config.setup(opts)
   require('org-columnview.highlights').define()
   register_agenda_type()
+  register_agenda_menu()
   register_completion_source()
   mappings.setup_entry_points()
   return M

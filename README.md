@@ -53,6 +53,9 @@ for the org buffer and `<Leader>oac` for the agenda.
 In the agenda, `<prefix>xc` opens the column view of the agenda as well, like
 in Emacs, where the same key opens the view of the current buffer.
 
+The column view is also an entry of the agenda prompt (`<prefix>oa`), under
+the key `c`.
+
 Both entry points are registered in the mapping groups of nvim-orgmode, so they
 are attached to the org and the agenda buffer and are listed in the nvim-orgmode
 help (`g?`). A global mapping is set as well, so that the column view can also
