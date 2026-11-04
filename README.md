@@ -121,6 +121,9 @@ and `est+` (low/high estimates).
 An optional `;FMT` after `+`, `min`, `max` or `mean` formats the summary and
 the displayed cell values, e.g. `{+;%.2f}` or `{min;%.1f}`.
 
+`X/` and `X%` count `[n/n]` and `[100%]` cookies as done. Age summaries
+(`@min`, `@max`, `@mean`) accept Org timestamps or duration values.
+
 The format is looked up in this order: a `COLUMNS` property on the headline or
 one of its ancestors, the `#+COLUMNS:` keyword in the file, and finally the
 `default_format` option.

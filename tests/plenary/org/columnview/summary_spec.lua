@@ -76,6 +76,32 @@ describe('Column Summary', function()
     assert.is_nil(Summary.compute({ 'foo' }, ':mean'))
   end)
 
+  it('counts checkbox cookies in X/ and X% summaries', function()
+    assert.are.equal('[2/2]', Summary.compute({ '[X]', '[1/1]' }, 'X/'))
+    assert.are.equal('[1/2]', Summary.compute({ '[ ]', '[2/2]' }, 'X/'))
+    assert.are.equal('[50%]', Summary.compute({ '[100%]', '[ ]' }, 'X%'))
+    -- A fraction cookie is not done for X% and vice versa.
+    assert.are.equal('[0/1]', Summary.compute({ '[100%]' }, 'X/'))
+    assert.are.equal('[0%]', Summary.compute({ '[1/1]' }, 'X%'))
+  end)
+
+  it('converts timestamps to age in minutes', function()
+    local now = os.time({ year = 2026, month = 11, day = 1, hour = 10, min = 0 })
+    assert.are.equal(600, Summary.age_to_minutes('<2026-11-01 Sun>', now))
+    assert.are.equal(120, Summary.age_to_minutes('[2026-11-01 Sun 08:00]', now))
+    assert.are.equal(120, Summary.age_to_minutes('2:00', now))
+    assert.is_nil(Summary.age_to_minutes('not an age', now))
+  end)
+
+  it('computes @min and @max ages from timestamps', function()
+    local now = os.time()
+    local one_hour_ago = os.date('%Y-%m-%d %a %H:%M', now - 3600)
+    local two_hours_ago = os.date('%Y-%m-%d %a %H:%M', now - 7200)
+    local values = { ('<%s>'):format(one_hour_ago), ('<%s>'):format(two_hours_ago) }
+    assert.are.equal('1:00', Summary.compute(values, '@min'))
+    assert.are.equal('2:00', Summary.compute(values, '@max'))
+  end)
+
   it('computes min and max age summaries', function()
     assert.are.equal('0:30', Summary.compute({ '0:30', '1:00', '2:00' }, '@min'))
     assert.are.equal('2:00', Summary.compute({ '0:30', '1:00', '2:00' }, '@max'))

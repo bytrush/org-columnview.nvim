@@ -20,6 +20,11 @@
 #                        not been defined"
 #   SCORE       1..5     same error; no property value may be written
 #
+#   For 7.4.1 and 7.4.2 open the column view on "Summary semantics demo":
+#   Count / Percent  X/ counts `[X]` and `[n/n]`, X% counts `[X]` and `[100%]`
+#   Newest / Oldest / Mean  age summaries accept Org timestamps; WAIT is an
+#                    @mean over duration values
+#
 #   C-c C-c still toggles a checkbox property when its value is `[ ]`/`[X]`.
 #   `a` edits the allowed values of the current column.
 #
@@ -93,3 +98,38 @@ CLOSED: [2026-11-01 Sun 18:00]
 
 *** DONE On save Columns mode enabled
     Details: looks like 'q' and second <prefix>xc work in different way.
+
+* Summary semantics demo
+:PROPERTIES:
+:COLUMNS: %18ITEM %10COOKIE(Count){X/} %10COOKIE(Percent){X%} %22CREATED(Newest){@min} %22CREATED(Oldest){@max} %10CREATED(Mean){@mean} %8WAIT{@mean}
+:END:
+The parent row shows the summaries; the children below provide the values.
+Ages are measured from the current time, so their displayed values change.
+
+** DONE First task
+:PROPERTIES:
+:COOKIE: [X]
+:CREATED: <2026-11-01 Sun 09:00>
+:WAIT: 1:00
+:END:
+
+** TODO Second task
+:PROPERTIES:
+:COOKIE: [2/2]
+:CREATED: [2026-10-30 Fri 12:00]
+:WAIT: 2:00
+:END:
+
+** TODO Third task
+:PROPERTIES:
+:COOKIE: [ ]
+:CREATED: <2026-10-28 Wed 18:00>
+:WAIT: 3:00
+:END:
+
+** DONE Fourth task
+:PROPERTIES:
+:COOKIE: [100%]
+:CREATED: <2026-10-25 Sun 08:00>
+:WAIT: 0:30
+:END:

@@ -476,8 +476,8 @@ Parity plan (revisit with 7.1.4):
 
 | # | Item | Emacs behaviour | Current behaviour | Status |
 |---|------|-----------------|-------------------|--------|
-| 7.4.1 | `X/` and `X%` | also count `[n/n]` and `[100%]` as done | only `[X]` counts (`summary.lua:245`, `summary.lua:263`) | [TODO] |
-| 7.4.2 | `@min`/`@max`/`@mean` (age) | age = `now - timestamp` in minutes, or a duration | the raw value is parsed as number/duration, no timestamp handling (`summary.lua:285`) | [TODO] |
+| 7.4.1 | `X/` and `X%` | also count `[n/n]` and `[100%]` as done | `X/` counts `[n/n]`, `X%` counts `[100%]`; both count cookies in the denominator (`summary.lua:283`) | [DONE] |
+| 7.4.2 | `@min`/`@max`/`@mean` (age) | age = `now - timestamp` in minutes, or a duration | Org timestamps are measured from now; numbers and durations are used as-is (`summary.lua:339`) | [DONE] |
 | 7.4.3 | Summary values stored in the drawer | written for the first column using the property | never written back | [TODO] (same as 7.1.3) |
 
 ### 7.5 Scope and UX differences
@@ -502,7 +502,7 @@ Ordered by value per effort; update the checkbox when an item ships.
 - [x] 7.2.1–7.2.5 editing semantics (correctness: today these can write junk
       values such as `[ ]` into `POINTS` or `SCHEDULED`)
 - [x] 7.3.1 per-column format `FMT`
-- [ ] 7.4.1, 7.4.2 summary semantics
+- [x] 7.4.1, 7.4.2 summary semantics
 - [ ] 7.1.11 global column view, 7.5.1 view scope
 - [ ] 7.5.3–7.5.6 column editing polish
 - [ ] 7.1.4, 7.1.5 config hooks

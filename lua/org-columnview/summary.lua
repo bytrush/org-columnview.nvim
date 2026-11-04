@@ -1,3 +1,4 @@
+local Date = require('orgmode.objects.date')
 local Duration = require('orgmode.objects.duration')
 
 ---@class OrgColumnSummary
@@ -273,14 +274,35 @@ function Summary._checkbox_all(values)
   return '[ ]'
 end
 
+---Classify a checkbox value: a plain box, a `[n/n]` fraction or a `[100%]`
+---cookie. The second return value is whether the value counts as done for its
+---own kind, matching `org-columns--summary-checkbox-count/-percent`.
+---@param value string
+---@return 'box'|'fraction'|'percent'|nil kind
+---@return boolean done
+function Summary._parse_checkbox(value)
+  if value == '[100%]' then
+    return 'percent', true
+  end
+  local num, den = value:match('^%[([%d]+)/([%d]+)%]$')
+  if num then
+    return 'fraction', #num == 1 and num == den and num ~= '0'
+  end
+  local box = value:match('^%[([ xX%-])%]$')
+  if box then
+    return 'box', box:upper() == 'X'
+  end
+  return nil, false
+end
+
 function Summary._checkbox_percent(values)
   local done = 0
   local total = 0
   for _, v in ipairs(values) do
-    local checkbox = v:match('%[(.)%]')
-    if checkbox then
+    local kind, is_done = Summary._parse_checkbox(v)
+    if kind then
       total = total + 1
-      if checkbox:upper() == 'X' then
+      if is_done and kind ~= 'fraction' then
         done = done + 1
       end
     end
@@ -295,10 +317,10 @@ function Summary._checkbox_fraction(values)
   local total = 0
   local checked = 0
   for _, v in ipairs(values) do
-    local checkbox = v:match('%[(.)%]')
-    if checkbox then
+    local kind, is_done = Summary._parse_checkbox(v)
+    if kind then
       total = total + 1
-      if checkbox:upper() == 'X' then
+      if is_done and kind ~= 'percent' then
         checked = checked + 1
       end
     end
@@ -309,6 +331,22 @@ function Summary._checkbox_fraction(values)
   return string.format('[%d/%d]', checked, total)
 end
 
+---Convert an age value to minutes. An Org timestamp is measured from `now`;
+---a number or duration is used as-is.
+---@param value string
+---@param now? number
+---@return number|nil
+function Summary.age_to_minutes(value, now)
+  local timestamp = value:match('[<[](%d%d%d%d%-%d%d%-%d%d[^>%]]*)[>%]]')
+  if timestamp then
+    local date = Date.from_string(timestamp)
+    if date then
+      return math.floor(((now or os.time()) - date.timestamp) / 60)
+    end
+  end
+  return Summary._to_number(value)
+end
+
 ---Minimum or maximum age of the given age/duration values, formatted as a duration.
 ---@param values string[]
 ---@param mode 'min'|'max'
@@ -316,7 +354,7 @@ end
 function Summary._extreme_age(values, mode)
   local result = nil
   for _, v in ipairs(values) do
-    local num = Summary._to_number(v)
+    local num = Summary.age_to_minutes(v)
     if num then
       if not result or (mode == 'min' and num < result) or (mode == 'max' and num > result) then
         result = num
@@ -336,7 +374,7 @@ function Summary._age_mean(values)
   local total = 0
   local count = 0
   for _, v in ipairs(values) do
-    local num = Summary._to_number(v)
+    local num = Summary.age_to_minutes(v)
     if num then
       total = total + num
       count = count + 1
