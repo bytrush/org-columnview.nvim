@@ -42,6 +42,13 @@ function Cells:get_value(headline, column)
   if column.is_special then
     return self:get_special_value(headline, column.name)
   end
+
+  local collect = Summary.get_collect_function(column.summary_type)
+  if collect then
+    local collected = collect(headline, column.name)
+    return type(collected) == 'string' and collected or ''
+  end
+
   local prop = headline:get_property(column.name:lower())
   return prop or ''
 end

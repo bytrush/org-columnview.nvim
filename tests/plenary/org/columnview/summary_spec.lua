@@ -50,6 +50,23 @@ describe('Column Summary', function()
     assert.are.equal('90.00', Summary.compute({ '0:30', '1:00' }, '+', '%.2f'))
   end)
 
+  it('uses a configured custom summary operator', function()
+    local columnview_config = require('org-columnview.config')
+    local original = columnview_config.opts.summary_types
+    columnview_config.opts.summary_types = {
+      join = function(values, format)
+        return table.concat(values, format or ',')
+      end,
+    }
+
+    assert.are.equal('A|B', Summary.compute({ 'A', 'B' }, 'join', '|'))
+    assert.are.equal('A,B', Summary.compute({ 'A', 'B' }, 'join'))
+    assert.is_true(Summary.is_summary_type('join'))
+    assert.is_truthy(vim.tbl_contains(Summary.get_summary_types(), 'join'))
+
+    columnview_config.opts.summary_types = original
+  end)
+
   it('returns nil when there are no numeric values', function()
     assert.is_nil(Summary.compute({ 'foo', 'bar' }, '+'))
   end)

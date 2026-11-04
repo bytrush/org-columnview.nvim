@@ -375,8 +375,8 @@ parity nice-to-haves.
 | 7.1.1 | `BEGIN_COLUMNVIEW` dynamic block (`org-columns-insert-dblock`) — export the view as a static table | `org-colview.el:1553` (`org-dblock-write:columnview`), `org-colview.el:1729` | no `COLUMNVIEW` support anywhere in `lua/` | [TODO] |
 | 7.1.2 | Block parameters `:id`, `:format`, `:hlines`, `:indent`, `:match`, `:maxlevel`, `:skip-empty-rows`, `:vlines`, `:link`, `:exclude-tags`, `:formatter` | `org-colview.el:1553` | — | [TODO] (with 7.1.1) |
 | 7.1.3 | Summary write-back into the parent's property drawer (`org-columns-compute-all`, `org-compute-property-at-point`) | `org-colview.el:1364`, `org.el:13994` | summaries are computed on the fly only; see §1.3 [DROPPED] | [TODO] (revisit the [DROPPED] decision) |
-| 7.1.4 | User-defined summary operators (`org-columns-summary-types`) | `org-colview.el:88` | fixed table in `lua/org-columnview/summary.lua:6` | [TODO] (revisit 7.3.2 during implementation) |
-| 7.1.5 | Allowed-values hook (`org-property-allowed-value-functions`) | `org.el:14007` | — | [TODO] |
+| 7.1.4 | User-defined summary operators (`org-columns-summary-types`) | `org-colview.el:88` | `summary_types` accepts summarize or summarize/collect definitions; custom operators are parsed, completed and collected (`summary.lua:44`, `parser.lua:277`, `cells.lua:46`) | [DONE] |
+| 7.1.5 | Allowed-values hook (`org-property-allowed-value-functions`) | `org.el:14007` | `allowed_value_functions` are consulted before `PROPERTY_ALL` (`compat.lua:117`, `config.lua:36`) | [DONE] |
 | 7.1.6 | Per-date-line summaries in a normal agenda (`org-agenda-colview-summarize`) | `org-colview.el:1819` | agenda column view is one flat table, `lua/org-columnview/agenda.lua:441` | [TODO] |
 | 7.1.7 | Recompute summaries in contributing buffers (`org-agenda-columns-compute-summary-properties`) | `org-colview.el:1883` | — | [TODO] |
 | 7.1.8 | Appointment duration counts toward `Effort` (`org-agenda-columns-add-appointments-to-effort-sum`) | `org-colview.el:1883` | — | [TODO] |
@@ -464,8 +464,8 @@ Parity plan (revisit with 7.1.4):
 
 1. [DONE] Look up `PROPERTY_ALL` implicitly for columns without a brace,
    matching Emacs.
-2. Treat `{X}` as a summary operator only when `X` is built-in or registered;
-   otherwise treat it as allowed values.
+2. [DONE] Treat `{X}` as a summary operator only when `X` is built-in or
+   registered; otherwise treat it as allowed values.
 3. Decide whether inline values stay as an opt-in extension or are written in
    the portable form (`{SUMMARY}` plus `PROPERTY_ALL`); warn before writing
    inline values if the portable form is the default.
@@ -505,7 +505,7 @@ Ordered by value per effort; update the checkbox when an item ships.
 - [x] 7.4.1, 7.4.2 summary semantics
 - [x] 7.1.11 global column view, 7.5.1 view scope
 - [x] 7.5.3–7.5.6 column editing polish
-- [ ] 7.1.4, 7.1.5 config hooks
+- [x] 7.1.4, 7.1.5 config hooks
 - [ ] 7.3.2 Emacs-compatible format grammar (re-validate alongside 7.1.4)
 - [ ] 7.1.1, 7.1.2 `BEGIN_COLUMNVIEW` block
 - [ ] 7.1.6–7.1.9 agenda parity

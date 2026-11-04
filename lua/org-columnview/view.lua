@@ -95,6 +95,12 @@ end
 ---@param prop_name string
 ---@return string[]|nil
 function ColumnView:_find_allowed_values(prop_name)
+  local property = prop_name:gsub('_[Aa][Ll][Ll]$', '')
+  local hook_values = compat.get_hook_allowed_values(property:upper())
+  if hook_values then
+    return hook_values
+  end
+
   for _, headline in ipairs(self.headlines) do
     local value = compat.get_inherited_property(headline, prop_name)
     if value then

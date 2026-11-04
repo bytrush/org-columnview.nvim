@@ -86,6 +86,22 @@ describe('Column Parser', function()
     assert.are.equal('%.2f', result.columns[3].format)
   end)
 
+  it('recognizes configured custom summary operators', function()
+    local columnview_config = require('org-columnview.config')
+    local original = columnview_config.opts.summary_types
+    columnview_config.opts.summary_types = {
+      join = function(values)
+        return table.concat(values, ',')
+      end,
+    }
+
+    local result = Parser.parse('%10Name{join}')
+    columnview_config.opts.summary_types = original
+
+    assert.are.equal('join', result.columns[1].summary_type)
+    assert.is_nil(result.columns[1].allowed_values)
+  end)
+
   it('handles empty format', function()
     local result = Parser.parse('')
     assert.are.same({}, result.columns)

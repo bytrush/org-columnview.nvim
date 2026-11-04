@@ -148,6 +148,11 @@ require('org-columnview').setup({
   -- Called with the column title and value to produce the text shown in the
   -- column view. Return nil to keep the original value.
   modify_value_for_display_function = nil,
+  -- Custom summary operators. A definition is either a function
+  -- (values, format) or a table { summarize = fn, collect = fn }.
+  summary_types = {},
+  -- Functions that return allowed values for a property, or nil.
+  allowed_value_functions = {},
   -- Prefix used for the mappings, defaults to the nvim-orgmode prefix
   prefix = nil,
   mappings = {

@@ -1038,6 +1038,36 @@ describe('Agenda Columns Type', function()
     end
   end)
 
+  it('uses configured allowed-value functions', function()
+    local columnview_config = require('org-columnview.config')
+    local original = columnview_config.opts.allowed_value_functions
+    columnview_config.opts.allowed_value_functions = {
+      function(property)
+        if property == 'REVIEWER' then
+          return { 'Alice', 'Carol' }
+        end
+      end,
+    }
+
+    local view = build_view({
+      '* Reviewer probe',
+      ':PROPERTIES:',
+      ':Reviewer: Alice',
+      ':END:',
+    }, {
+      overriding_columns_format = '%25ITEM %Reviewer',
+    })
+    columnview_config.opts.allowed_value_functions = original
+
+    assert.are.same({ 'Alice', 'Carol' }, view.allowed_values['REVIEWER_ALL'])
+
+    view.current_row = headline_index(view, 'Reviewer probe')
+    view.current_col = column_index(view, 'REVIEWER')
+    view:next_value()
+    local updated = view.headlines[headline_index(view, 'Reviewer probe')]
+    assert.are.equal('Carol', updated:get_property('reviewer'))
+  end)
+
   it('warns when cycling a property without allowed values', function()
     local view = build_view({
       '* Plain task',

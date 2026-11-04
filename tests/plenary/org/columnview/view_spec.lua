@@ -1726,6 +1726,69 @@ describe('ColumnView', function()
     assert.are.equal('5.00', view.rows[1].cells[1].summary)
   end)
 
+  it('uses a custom summary operator and collect function', function()
+    local columnview_config = require('org-columnview.config')
+    local original = columnview_config.opts.summary_types
+    columnview_config.opts.summary_types = {
+      join = {
+        summarize = function(values)
+          return table.concat(values, '|')
+        end,
+        collect = function(headline)
+          return headline:get_property('collected')
+        end,
+      },
+    }
+
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %20ITEM %15Value{join}',
+      ':END:',
+      '** Child A',
+      ':PROPERTIES:',
+      ':Collected: A',
+      ':END:',
+      '** Child B',
+      ':PROPERTIES:',
+      ':Collected: B',
+      ':END:',
+    })
+    columnview_config.opts.summary_types = original
+
+    assert.are.equal('A', view.rows[2].cells[2].value)
+    assert.are.equal('B', view.rows[3].cells[2].value)
+    assert.are.equal('A|B', view.rows[1].cells[2].summary)
+  end)
+
+  it('uses configured allowed-value functions before PROPERTY_ALL', function()
+    local columnview_config = require('org-columnview.config')
+    local original = columnview_config.opts.allowed_value_functions
+    columnview_config.opts.allowed_value_functions = {
+      function(property)
+        if property == 'OWNER' then
+          return { 'Alice', 'Bob' }
+        end
+      end,
+    }
+
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %10Owner',
+      ':Owner: Alice',
+      ':END:',
+    })
+    columnview_config.opts.allowed_value_functions = original
+
+    assert.are.same({ 'Alice', 'Bob' }, view.allowed_values['OWNER_ALL'])
+
+    view.current_row = 1
+    view.current_col = 1
+    view:next_value()
+    assert.are.equal('Bob', view.rows[1].headline:get_property('owner'))
+  end)
+
   it('cycles the TODO state via the todo action without fast access', function()
     local view = create_view({
       '* Parent',

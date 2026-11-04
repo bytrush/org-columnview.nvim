@@ -1,5 +1,6 @@
 local Date = require('orgmode.objects.date')
 local Duration = require('orgmode.objects.duration')
+local columnview_config = require('org-columnview.config')
 
 ---@class OrgColumnSummary
 local Summary = {}
@@ -37,14 +38,80 @@ function Summary.get_summary_function(summary_type)
   return SUMMARY_TYPES[summary_type]
 end
 
+---The custom definition configured for an operator, if any.
+---@param summary_type string
+---@return any
+function Summary.get_custom_definition(summary_type)
+  local types = columnview_config.summary_types
+  if type(types) ~= 'table' then
+    return nil
+  end
+  return types[summary_type]
+end
+
+---The summarize function of a custom operator, if any.
+---@param summary_type string
+---@return (fun(values: string[], format?: string): string|nil)|nil
+function Summary.get_custom_summarize(summary_type)
+  local definition = Summary.get_custom_definition(summary_type)
+  if type(definition) == 'function' then
+    return definition
+  end
+  if type(definition) == 'table' then
+    return definition.summarize
+  end
+  return nil
+end
+
+---The collect function of a custom operator, if any. It receives the headline
+---and property name and returns the value used for the column.
+---@param summary_type string|nil
+---@return (fun(headline: OrgHeadline, property: string): string|nil)|nil
+function Summary.get_collect_function(summary_type)
+  local definition = Summary.get_custom_definition(summary_type)
+  if type(definition) == 'table' then
+    return definition.collect
+  end
+  return nil
+end
+
+---Whether a name is a built-in or configured summary operator.
+---@param summary_type string|nil
+---@return boolean
+function Summary.is_summary_type(summary_type)
+  if not summary_type or summary_type == '' then
+    return false
+  end
+  if Summary.get_custom_definition(summary_type) then
+    return true
+  end
+  return Summary.get_summary_function(summary_type) ~= nil
+end
+
 ---Summary operator names, for completion in the column editor.
 ---@return string[]
 function Summary.get_summary_types()
+  local seen = {}
   local types = {}
-  for name in pairs(SUMMARY_TYPES) do
-    table.insert(types, name)
+  local function add(name)
+    if name and name ~= '' and not seen[name] then
+      seen[name] = true
+      table.insert(types, name)
+    end
   end
-  table.insert(types, '$')
+
+  for name in pairs(SUMMARY_TYPES) do
+    add(name)
+  end
+  add('$')
+
+  local custom = columnview_config.summary_types
+  if type(custom) == 'table' then
+    for name in pairs(custom) do
+      add(name)
+    end
+  end
+
   table.sort(types)
   return types
 end
@@ -64,6 +131,20 @@ function Summary.compute(values, summary_type, format)
         format = embedded
       end
     end
+  end
+
+  local custom = Summary.get_custom_summarize(summary_type)
+  if custom then
+    local non_empty = {}
+    for _, value in ipairs(values) do
+      if value ~= '' then
+        table.insert(non_empty, value)
+      end
+    end
+    if #non_empty == 0 then
+      return nil
+    end
+    return custom(non_empty, format)
   end
 
   local func = Summary.get_summary_function(summary_type)

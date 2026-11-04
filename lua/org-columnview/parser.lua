@@ -1,5 +1,6 @@
 local columnview_config = require('org-columnview.config')
 local compat = require('org-columnview.compat')
+local Summary = require('org-columnview.summary')
 
 ---@class OrgColumnParser
 local Parser = {}
@@ -273,17 +274,7 @@ function Parser._parse_column_spec(spec)
     -- The operator may carry a format after a semicolon, like `min;%.2f`.
     local operator, format = first:match('^([^;]+);(.*)$')
     operator = operator or first
-    -- Check if it's a summary type (:, +, $, min, max, mean, X, @, est+)
-    local is_summary = operator:match('^[:+]')
-      or operator == '$'
-      or operator:match('^min$')
-      or operator:match('^max$')
-      or operator:match('^mean$')
-      or operator:match('^X[/%%]?$')
-      or operator:match('^@')
-      or operator:match('^est%+$')
-
-    if is_summary then
+    if Summary.is_summary_type(operator) then
       summary_type = operator
       if format and format ~= '' then
         summary_format = format

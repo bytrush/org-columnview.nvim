@@ -8,6 +8,8 @@
 ---@field default_format_for_agenda? string Column format used in the agenda when nothing else is defined
 ---@field overriding_columns_format? string Column format that overrides everything in the agenda
 ---@field modify_value_for_display_function? fun(column: string|nil, value: string): string|nil Called to modify the displayed value
+---@field summary_types? table<string, any> Custom summary operators, mapping the operator name to a function `(values, format)` or `{ summarize = fn, collect = fn }`
+---@field allowed_value_functions? (fun(property: string): string[]|nil)[] Functions that supply allowed values before `PROPERTY_ALL` is consulted
 ---@field prefix? string Prefix used for the mappings, defaults to the nvim-orgmode prefix
 ---@field mappings table Mappings of the plugin
 local M = {}
@@ -17,6 +19,8 @@ local M = {}
 ---@field default_format_for_agenda? string
 ---@field overriding_columns_format? string
 ---@field modify_value_for_display_function? fun(column: string|nil, value: string): string|nil
+---@field summary_types? table<string, any>
+---@field allowed_value_functions? (fun(property: string): string[]|nil)[]
 ---@field prefix? string
 ---@field mappings? table
 
@@ -28,6 +32,8 @@ M.defaults = {
   default_format_for_agenda = nil,
   overriding_columns_format = nil,
   modify_value_for_display_function = nil,
+  summary_types = {},
+  allowed_value_functions = {},
   prefix = nil,
   mappings = {
     org_columns = '<prefix>xc',

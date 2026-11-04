@@ -163,6 +163,11 @@ agenda column view keeps such edits in memory only.
       -- Called with the column title and the value to produce the text that
       -- is shown. Return nil to keep the original value.
       modify_value_for_display_function = nil,
+      -- Custom summary operators. A definition is either a function
+      -- (values, format) or a table { summarize = fn, collect = fn }.
+      summary_types = {},
+      -- Functions that return allowed values for a property, or nil.
+      allowed_value_functions = {},
       -- Prefix of the mappings, defaults to the prefix of nvim-orgmode
       prefix = nil,
       mappings = {

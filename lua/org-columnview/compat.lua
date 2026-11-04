@@ -109,6 +109,35 @@ function M.input_with_completion(prompt, default, items)
   })
 end
 
+---Allowed values supplied by the configured functions, before the
+---`PROPERTY_ALL` property is consulted. Mirrors
+---`org-property-allowed-value-functions`.
+---@param property string
+---@return string[]|nil
+function M.get_hook_allowed_values(property)
+  local functions = require('org-columnview.config').allowed_value_functions
+  if type(functions) ~= 'table' then
+    return nil
+  end
+
+  for _, fn in ipairs(functions) do
+    local values = fn(property)
+    if type(values) == 'table' then
+      local normalized = {}
+      for _, value in ipairs(values) do
+        if value ~= '' then
+          table.insert(normalized, tostring(value))
+        end
+      end
+      if #normalized > 0 then
+        return normalized
+      end
+    end
+  end
+
+  return nil
+end
+
 ---Read a property from a headline, its ancestors, or the file-wide keywords.
 ---Emacs uses this inheritance chain when it looks up `PROPERTY_ALL` for the
 ---allowed values of a column.
