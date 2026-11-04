@@ -1,0 +1,82 @@
+# Column view verification file for items 7.2.1 - 7.2.5
+#
+# How to use:
+#   1. Open this file in Neovim with nvim-orgmode and org-columnview.nvim
+#      loaded.
+#   2. Put the cursor on the first headline and run <Leader>oxc (or :lua
+#      require('org-columnview').org_columns()).
+#   3. Try the actions below on the relevant columns.
+#
+#   ITEM        e        rename the headline; TODO, priority and tags must stay
+#   CLOCKSUM    e        must report "This special column cannot be edited"
+#   CLOCKSUM_T  e        same as above
+#   SCHEDULED   e        opens the calendar; choosing a date updates the entry
+#   DEADLINE    e        same as above
+#   SCHEDULED   n / p    shifts the date by one day; the date must stay valid
+#   DEADLINE    n / p    same as above
+#   POINTS      n / p    cycles 1, 3, 5, 8, 13 (POINTS_ALL is defined below)
+#   POINTS      1..5     selects the numbered allowed value
+#   SCORE       n / p    must report "Allowed values for this property have
+#                        not been defined"
+#   SCORE       1..5     same error; no property value may be written
+#
+#   C-c C-c still toggles a checkbox property when its value is `[ ]`/`[X]`.
+#   `a` edits the allowed values of the current column.
+#
+# After the date edits, save the file and open it in Emacs Org mode: the
+# SCHEDULED/DEADLINE lines, the headline text and the properties must all be
+# valid Org syntax. The ITEM edit must not create an `ITEM` property.
+#
+# Note: the `{POINTS_ALL}` brace in the COLUMNS directive below is a plugin
+# extension (item 7.3.2 of COLUMN_VIEW_IMPLEMENTATION_PLAN.md). Emacs treats it
+# as a summary operator, so drop the brace when opening this file in Emacs. The
+# plugin then cannot cycle POINTS until 7.3.2 is implemented. Everything else
+# in the file is plain Org syntax.
+
+#+TITLE: Column view demo
+#+COLUMNS: %20ITEM %6TODO %8PRIORITY %9TAGS %15SCHEDULED %15DEADLINE %9CLOCKSUM %11CLOCKSUM_T %6POINTS{POINTS_ALL} %6SCORE
+#+PROPERTY: POINTS_ALL 1 3 5 8 13
+
+* TODO [#A] Prepare release  :work:release:
+SCHEDULED: <2026-11-06 Fri> DEADLINE: <2026-11-10 Tue>
+:PROPERTIES:
+:POINTS: 8
+:SCORE: 42
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-04 Wed 09:00]--[2026-11-04 Wed 10:30] => 1:30
+CLOCK: [2026-10-30 Fri 14:00]--[2026-10-30 Fri 15:00] => 1:00
+:END:
+
+** DONE Write changelog  :docs:
+:PROPERTIES:
+:POINTS: 3
+:SCORE: 21
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-02 Mon 11:00]--[2026-11-02 Mon 12:00] => 1:00
+:END:
+
+** IN-PROGRESS Review the docs  :docs:review:
+DEADLINE: <2026-11-07 Sat>
+:PROPERTIES:
+:POINTS: 5
+:END:
+
+* TODO Call Alice about the demo  :phone:
+SCHEDULED: <2026-11-04 Wed 15:00>
+:PROPERTIES:
+:SCORE: 7
+:END:
+
+* DONE Archive the old notes  :admin:
+CLOSED: [2026-11-01 Sun 18:00]
+:PROPERTIES:
+:POINTS: 1
+:END:
+
+* No dates on this entry  :admin:
+:PROPERTIES:
+:POINTS: 1
+:SCORE: 0
+:END:

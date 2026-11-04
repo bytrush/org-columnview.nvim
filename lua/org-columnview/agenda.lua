@@ -12,6 +12,8 @@ local SortingStrategy = require('orgmode.agenda.sorting_strategy')
 local Promise = require('orgmode.utils.promise')
 local utils = require('orgmode.utils')
 local Input = require('orgmode.ui.input')
+local Calendar = require('orgmode.objects.calendar')
+local Date = require('orgmode.objects.date')
 
 ---Extmarks marking the currently selected cell.
 local ns = vim.api.nvim_create_namespace('orgmode_agenda_columns')
@@ -833,31 +835,25 @@ function OrgAgendaColumnsType:_allowed_values_for(col)
   if allowed and #allowed > 0 then
     return allowed
   end
-  if col.name:upper() == 'ITEM' then
-    return nil
-  end
-  return { '[ ]', '[X]' }
+  return nil
 end
 
----Apply a new value to a cell, writing it through the agenda when available.
----@param headline OrgHeadline
+---Report a column that has no selectable values, like Emacs'
+---`org-columns-next-allowed-value`.
 ---@param col OrgColumnSpec
----@param value string
-function OrgAgendaColumnsType:_apply_value(headline, col, value)
-  local setter = function(h)
-    if col.is_special then
-      if col.name == 'TODO' then
-        h:set_todo(value)
-      elseif col.name == 'PRIORITY' then
-        h:set_priority(value:match('%[#(.-)%]') or value)
-      elseif col.name == 'TAGS' then
-        h:set_tags(value)
-      end
-    else
-      h:set_property(col.name:lower(), value)
-    end
+function OrgAgendaColumnsType:_warn_no_allowed_values(col)
+  if col.name:upper() == 'ITEM' then
+    utils.echo_error('Cannot edit item headline from here')
+    return
   end
+  utils.echo_error('Allowed values for this property have not been defined')
+end
 
+---Run a setter through the agenda edit hook, or update the file and reload the
+---agenda when nvim-orgmode does not provide the hook.
+---@param headline OrgHeadline
+---@param setter fun(headline: OrgHeadline)
+function OrgAgendaColumnsType:_apply_edit(headline, setter)
   if self.on_edit then
     self.on_edit(headline, setter)
   else
@@ -871,6 +867,26 @@ function OrgAgendaColumnsType:_apply_value(headline, col, value)
         return require('orgmode').agenda:redo('remote_edit', true)
       end)
   end
+end
+
+---Apply a new value to a cell, writing it through the agenda when available.
+---@param headline OrgHeadline
+---@param col OrgColumnSpec
+---@param value string
+function OrgAgendaColumnsType:_apply_value(headline, col, value)
+  self:_apply_edit(headline, function(h)
+    if col.is_special then
+      if col.name == 'TODO' then
+        h:set_todo(value)
+      elseif col.name == 'PRIORITY' then
+        h:set_priority(value:match('%[#(.-)%]') or value)
+      elseif col.name == 'TAGS' then
+        h:set_tags(value)
+      end
+    else
+      h:set_property(col.name:lower(), value)
+    end
+  end)
 end
 
 function OrgAgendaColumnsType:_refresh_row(headline)
@@ -896,6 +912,7 @@ function OrgAgendaColumnsType:select_value(n)
   end
   local allowed = self:_allowed_values_for(col)
   if not allowed then
+    self:_warn_no_allowed_values(col)
     return
   end
   if n <= #allowed then
@@ -932,10 +949,23 @@ function OrgAgendaColumnsType:_change_value(direction)
     local value = direction > 0 and ps:increase() or ps:decrease()
     self:_apply_value(headline, col, value)
     return
+  elseif col.name == 'SCHEDULED' or col.name == 'DEADLINE' then
+    local date = compat.get_headline_date(headline, col.name)
+    if not date then
+      utils.echo_error(('No %s date to shift'):format(col.name))
+      return
+    end
+    local new_date = date:add({ day = direction })
+    self:_apply_edit(headline, function(h)
+      h:remove_closed_date()
+      compat.set_headline_date(h, col.name, new_date)
+    end)
+    return
   end
 
   local allowed = self:_allowed_values_for(col)
-  if not allowed or #allowed == 0 then
+  if not allowed then
+    self:_warn_no_allowed_values(col)
     return
   end
   local current = self:_cell_value(headline, col)
@@ -1018,11 +1048,52 @@ function OrgAgendaColumnsType:toggle_or_quit()
   self:_apply_value(headline, col, new_val)
 end
 
+---Edit the SCHEDULED or DEADLINE date with the calendar, like Emacs'
+---`org-schedule` / `org-deadline`.
+---@param headline OrgHeadline
+---@param col OrgColumnSpec
+function OrgAgendaColumnsType:_edit_date(headline, col)
+  local name = col.name
+  local current = compat.get_headline_date(headline, name)
+  local title = name == 'SCHEDULED' and 'Set schedule' or 'Set deadline'
+  return Calendar.new({ date = current or Date.today(), clearable = true, title = title })
+    :open()
+    :next(function(new_date, cleared)
+      if cleared then
+        self:_apply_edit(headline, function(h)
+          compat.remove_headline_date(h, name)
+        end)
+      elseif new_date then
+        self:_apply_edit(headline, function(h)
+          h:remove_closed_date()
+          compat.set_headline_date(h, name, new_date)
+        end)
+      end
+    end)
+end
+
 function OrgAgendaColumnsType:edit_value()
   local headline = self:_current_headline()
   local col = self:_current_column()
   if not headline or not col then
     return
+  end
+
+  if col.name == 'ITEM' then
+    local current_title = headline:get_title()
+    local input = vim.fn.input('Edit: ', current_title)
+    if not input or vim.trim(input) == '' then
+      return
+    end
+    self:_apply_edit(headline, function(h)
+      compat.set_headline_title(h, input)
+    end)
+    return
+  elseif col.name == 'CLOCKSUM' or col.name == 'CLOCKSUM_T' then
+    utils.echo_error('This special column cannot be edited')
+    return
+  elseif col.name == 'SCHEDULED' or col.name == 'DEADLINE' then
+    return self:_edit_date(headline, col)
   end
 
   if col.name == 'TODO' then

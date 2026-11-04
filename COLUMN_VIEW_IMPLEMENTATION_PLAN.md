@@ -363,6 +363,11 @@ behaviour in this codebase and where it lives.
 Status: `[TODO]` queued, `[DONE]` shipped, `[DROPPED]` decided against,
 `[N/A]` does not apply to the target Emacs version.
 
+Compatibility is a product requirement: an org file edited in Neovim should
+keep working in Emacs Org mode. Items that change on-disk data (property
+values, `COLUMNS` formats, timestamps) are treated as defects, not only as
+parity nice-to-haves.
+
 ### 7.1 Missing features
 
 | # | Feature | Emacs reference | Current state | Status |
@@ -370,7 +375,7 @@ Status: `[TODO]` queued, `[DONE]` shipped, `[DROPPED]` decided against,
 | 7.1.1 | `BEGIN_COLUMNVIEW` dynamic block (`org-columns-insert-dblock`) — export the view as a static table | `org-colview.el:1553` (`org-dblock-write:columnview`), `org-colview.el:1729` | no `COLUMNVIEW` support anywhere in `lua/` | [TODO] |
 | 7.1.2 | Block parameters `:id`, `:format`, `:hlines`, `:indent`, `:match`, `:maxlevel`, `:skip-empty-rows`, `:vlines`, `:link`, `:exclude-tags`, `:formatter` | `org-colview.el:1553` | — | [TODO] (with 7.1.1) |
 | 7.1.3 | Summary write-back into the parent's property drawer (`org-columns-compute-all`, `org-compute-property-at-point`) | `org-colview.el:1364`, `org.el:13994` | summaries are computed on the fly only; see §1.3 [DROPPED] | [TODO] (revisit the [DROPPED] decision) |
-| 7.1.4 | User-defined summary operators (`org-columns-summary-types`) | `org-colview.el:88` | fixed table in `lua/org-columnview/summary.lua:6` | [TODO] |
+| 7.1.4 | User-defined summary operators (`org-columns-summary-types`) | `org-colview.el:88` | fixed table in `lua/org-columnview/summary.lua:6` | [TODO] (revisit 7.3.2 during implementation) |
 | 7.1.5 | Allowed-values hook (`org-property-allowed-value-functions`) | `org.el:14007` | — | [TODO] |
 | 7.1.6 | Per-date-line summaries in a normal agenda (`org-agenda-colview-summarize`) | `org-colview.el:1819` | agenda column view is one flat table, `lua/org-columnview/agenda.lua:441` | [TODO] |
 | 7.1.7 | Recompute summaries in contributing buffers (`org-agenda-columns-compute-summary-properties`) | `org-colview.el:1883` | — | [TODO] |
@@ -385,11 +390,11 @@ Status: `[TODO]` queued, `[DONE]` shipped, `[DROPPED]` decided against,
 
 | # | Action | Emacs behaviour | Current behaviour | Status |
 |---|--------|-----------------|-------------------|--------|
-| 7.2.1 | `e` on `ITEM` | `org-edit-headline` on the source entry | writes a property named `ITEM`, `lua/org-columnview/view.lua:1107` | [TODO] |
-| 7.2.2 | `e` on `CLOCKSUM`/`CLOCKSUM_T` | error "This special column cannot be edited" | writes a `clocksum` property | [TODO] |
-| 7.2.3 | `e` on `SCHEDULED`/`DEADLINE` | opens the date editor | writes a plain property | [TODO] |
-| 7.2.4 | `n`/`p` on `SCHEDULED`/`DEADLINE` | shifts the date by ±1 day (`org-colview-construct-allowed-dates`) | cycles `[ ]`/`[X]` into the property, `lua/org-columnview/view.lua:792`, `lua/org-columnview/view.lua:711` | [TODO] |
-| 7.2.5 | `n`/`p`, `1`–`0` on a property without allowed values | error "Allowed values for this property have not been defined" | silently cycles `[ ]`/`[X]` and writes it | [TODO] |
+| 7.2.1 | `e` on `ITEM` | `org-edit-headline` on the source entry | renames the headline in place, preserving stars, TODO, priority and tags (`view.lua:1088`, `agenda.lua:1082`, `compat.lua:142`) | [DONE] |
+| 7.2.2 | `e` on `CLOCKSUM`/`CLOCKSUM_T` | error "This special column cannot be edited" | reports the error and writes nothing (`view.lua:1098`, `agenda.lua:1091`) | [DONE] |
+| 7.2.3 | `e` on `SCHEDULED`/`DEADLINE` | opens the date editor | opens the nvim-orgmode calendar and updates or clears the plan date (`view.lua:1050`, `agenda.lua:1055`) | [DONE] |
+| 7.2.4 | `n`/`p` on `SCHEDULED`/`DEADLINE` | shifts the date by ±1 day (`org-colview-construct-allowed-dates`) | shifts the date by ±1 day and removes `CLOSED` (`view.lua:840`, `agenda.lua:952`) | [DONE] |
+| 7.2.5 | `n`/`p`, `1`–`0` on a property without allowed values | error "Allowed values for this property have not been defined" | reports the error and leaves the property untouched (`view.lua:758`, `agenda.lua:844`) | [DONE] |
 | 7.2.6 | `:ETC` in a `PROP_ALL` list (means "other values allowed") | marks the first value `org-unrestricted`, prompt accepts anything | not supported | [TODO] |
 | 7.2.7 | `edit_allowed` storage format | raw string, as typed | comma separated list | [TODO] |
 | 7.2.8 | Checkbox toggle (`C-c C-c`) | toggles whenever the raw value matches `\[[ xX-]\]` | also requires a non-special column, `lua/org-columnview/view.lua:1131` | [TODO] |
@@ -399,8 +404,74 @@ Status: `[TODO]` queued, `[DONE]` shipped, `[DROPPED]` decided against,
 | # | Item | Emacs behaviour | Current behaviour | Status |
 |---|------|-----------------|-------------------|--------|
 | 7.3.1 | Per-column format `FMT` (`{op;fmt}`) | `+`, `min`, `max`, `mean` honour it; any column with a format renders `(format fmt (string-to-number value))` | only `+;fmt` is honoured (`summary.lua:30`); `min;fmt`/`max;fmt`/`mean;fmt` ignored; the format is never applied to the displayed cell value (`cells.lua:32`) | [TODO] |
-| 7.3.2 | Format grammar | one brace group `{OPERATOR}`; allowed values live only in the `PROP_ALL` property | a second brace group carries inline allowed values (`parser.lua:235`), so `%10Owner{Owner_ALL}` is an unknown operator in Emacs | [DROPPED] (diverges by design, but formats are not exchangeable with Emacs) |
+| 7.3.2 | Format grammar | one brace group `{OPERATOR}`; allowed values live only in the `PROPERTY_ALL` property (e.g. `OWNER_ALL`) | allowed values can be inline in braces or referenced with `{NAME_ALL}` (`parser.lua:218-241`), so the same syntax means different things in Emacs | [TODO] (re-validate with 7.1.4; see notes below) |
 | 7.3.3 | `%%` escaping, `!` no-summary, `+`/`-`/`:` prefixes | not in Org 9.8 | not implemented | [N/A] |
+
+#### 7.3.2 Notes: format grammar compatibility
+
+This item is **not** dropped: inline allowed values are useful, but Emacs
+compatibility is a product requirement. Re-validate the decision while
+implementing 7.1.4 (user-defined summary operators), because only then can the
+parser reliably distinguish a summary operator from allowed values.
+
+Emacs grammar (`org-colview.el:1458`):
+
+```
+%[width]PROPERTY[(Title)][{OPERATOR[;FMT]}]
+```
+
+The single optional brace group is always a summary operator. Allowed values
+are looked up separately from the `PROPERTY_ALL` property (on the entry,
+inherited from an ancestor, or set file-wide); the format never mentions them.
+
+```org
+#+COLUMNS: %25ITEM %10OWNER
+
+* Project
+  :PROPERTIES:
+  :OWNER_ALL: Alice Bob
+  :END:
+```
+
+Plugin grammar (`parser.lua:218-241`):
+
+- `%OWNER` - property column with no allowed values; `n`/`p` reports an error
+  (`view.lua:758`)
+- `%OWNER{OWNER_ALL}` - allowed-values reference
+- `%OWNER{Alice,Bob}` - inline allowed values
+- `%OWNER{+}{Alice,Bob}` - summary plus inline allowed values
+
+`Parser.unparse` (`parser.lua:52-53`) writes allowed values back as braces, so
+any column edit makes the divergence persistent on disk.
+
+| Spec | Emacs | Plugin |
+|---|---|---|
+| `%OWNER` | allowed values from `OWNER_ALL` | no allowed values; `n`/`p` reports an error |
+| `%OWNER{OWNER_ALL}` | summary operator `OWNER_ALL` (unknown unless registered) | allowed-values reference |
+| `%OWNER{Alice,Bob}` | summary operator `Alice,Bob` (unknown) | inline allowed values |
+| `%OWNER{+}{Alice,Bob}` | summary `+`; the second brace is ignored | summary `+` and inline allowed values |
+
+Consequences:
+
+- A format written by the plugin with inline values is invalid in Emacs; an
+  unknown operator fails when Emacs computes the summary.
+- A bare Emacs `%OWNER` with an `OWNER_ALL` property does not get allowed
+  values in the plugin.
+- `%OWNER{+}{Alice,Bob}` loses the allowed values in Emacs.
+- Until 7.1.4 exists, the plugin treats any unknown brace as allowed values,
+  so an Emacs custom summary operator is misread.
+
+Parity plan (revisit with 7.1.4):
+
+1. Look up `PROPERTY_ALL` implicitly for columns without a brace, matching
+   Emacs.
+2. Treat `{X}` as a summary operator only when `X` is built-in or registered;
+   otherwise treat it as allowed values.
+3. Decide whether inline values stay as an opt-in extension or are written in
+   the portable form (`{SUMMARY}` plus `PROPERTY_ALL`); warn before writing
+   inline values if the portable form is the default.
+4. Document in the README that inline allowed values are not understood by
+   Emacs.
 
 ### 7.4 Summary semantics gaps
 
@@ -429,13 +500,14 @@ Status: `[TODO]` queued, `[DONE]` shipped, `[DROPPED]` decided against,
 
 Ordered by value per effort; update the checkbox when an item ships.
 
-- [ ] 7.2.1–7.2.5 editing semantics (correctness: today these can write junk
+- [x] 7.2.1–7.2.5 editing semantics (correctness: today these can write junk
       values such as `[ ]` into `POINTS` or `SCHEDULED`)
 - [ ] 7.3.1 per-column format `FMT`
 - [ ] 7.4.1, 7.4.2 summary semantics
 - [ ] 7.1.11 global column view, 7.5.1 view scope
 - [ ] 7.5.3–7.5.6 column editing polish
 - [ ] 7.1.4, 7.1.5 config hooks
+- [ ] 7.3.2 Emacs-compatible format grammar (re-validate alongside 7.1.4)
 - [ ] 7.1.1, 7.1.2 `BEGIN_COLUMNVIEW` block
 - [ ] 7.1.6–7.1.9 agenda parity
 - [ ] 7.1.3, 7.4.3 summary write-back

@@ -4,6 +4,8 @@ local Summary = require('org-columnview.summary')
 local Cells = require('org-columnview.cells')
 local Parser = require('org-columnview.parser')
 local Input = require('orgmode.ui.input')
+local Calendar = require('orgmode.objects.calendar')
+local Date = require('orgmode.objects.date')
 local Headline = require('orgmode.files.headline')
 local compat = require('org-columnview.compat')
 
@@ -747,10 +749,18 @@ function ColumnView:_allowed_values_for(col)
     return allowed
   end
 
+  return nil
+end
+
+---Report a column that has no selectable values, like Emacs'
+---`org-columns-next-allowed-value`.
+---@param col OrgColumnSpec
+function ColumnView:_warn_no_allowed_values(col)
   if col.name:upper() == 'ITEM' then
-    return nil
+    utils.echo_error('Cannot edit item headline from here')
+    return
   end
-  return { '[ ]', '[X]' }
+  utils.echo_error('Allowed values for this property have not been defined')
 end
 
 ---Refuse to edit a cell whose value is computed from children, like Emacs'
@@ -782,6 +792,7 @@ function ColumnView:select_value(n)
 
   local allowed = self:_allowed_values_for(cell.column)
   if not allowed then
+    self:_warn_no_allowed_values(cell.column)
     return
   end
 
@@ -826,14 +837,25 @@ function ColumnView:_change_value(direction)
     end)
     self:refresh()
     return
-  end
-
-  local allowed = self.allowed_values[col.name .. '_ALL']
-  if not allowed or #allowed == 0 then
-    if col.name:upper() == 'ITEM' then
+  elseif col.name == 'SCHEDULED' or col.name == 'DEADLINE' then
+    local date = compat.get_headline_date(headline, col.name)
+    if not date then
+      utils.echo_error(('No %s date to shift'):format(col.name))
       return
     end
-    allowed = { '[ ]', '[X]' }
+    local new_date = date:add({ day = direction })
+    self:_write(function()
+      headline:remove_closed_date()
+      compat.set_headline_date(headline, col.name, new_date)
+    end)
+    self:refresh()
+    return
+  end
+
+  local allowed = self:_allowed_values_for(col)
+  if not allowed then
+    self:_warn_no_allowed_values(col)
+    return
   end
 
   local current = cell.value
@@ -1022,6 +1044,33 @@ function ColumnView:todo()
   end
 end
 
+---Edit the SCHEDULED or DEADLINE date with the calendar, like Emacs'
+---`org-schedule` / `org-deadline`.
+---@param cell OrgColumnViewCell
+function ColumnView:_edit_date(cell)
+  local headline = cell.headline
+  local name = cell.column.name
+  local current = compat.get_headline_date(headline, name)
+  local title = name == 'SCHEDULED' and 'Set schedule' or 'Set deadline'
+  return Calendar.new({ date = current or Date.today(), clearable = true, title = title })
+    :open()
+    :next(function(new_date, cleared)
+      if cleared then
+        self:_write(function()
+          compat.remove_headline_date(headline, name)
+        end)
+      elseif new_date then
+        self:_write(function()
+          headline:remove_closed_date()
+          compat.set_headline_date(headline, name, new_date)
+        end)
+      else
+        return
+      end
+      self:refresh()
+    end)
+end
+
 ---Edit the value at point using appropriate interface for the column type
 function ColumnView:edit_value()
   local row = self.rows[self.current_row]
@@ -1035,6 +1084,24 @@ function ColumnView:edit_value()
 
   local col = cell.column
   local headline = row.headline
+
+  if col.name == 'ITEM' then
+    local current_title = headline:get_title()
+    local input = vim.fn.input('Edit: ', current_title)
+    if not input or vim.trim(input) == '' then
+      return
+    end
+    self:_write(function()
+      compat.set_headline_title(headline, input)
+    end)
+    self:refresh()
+    return
+  elseif col.name == 'CLOCKSUM' or col.name == 'CLOCKSUM_T' then
+    utils.echo_error('This special column cannot be edited')
+    return
+  elseif col.name == 'SCHEDULED' or col.name == 'DEADLINE' then
+    return self:_edit_date(cell)
+  end
 
   -- Special column types with custom editors
   if col.name == 'TODO' then

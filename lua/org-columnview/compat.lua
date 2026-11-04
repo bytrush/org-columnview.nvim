@@ -134,4 +134,53 @@ function M.next_todo_state(todos, current_state)
   return ts:get_next()
 end
 
+---Rename a headline in place. The stars, TODO keyword, priority and tags are
+---kept, only the title part is replaced.
+---@param headline OrgHeadline
+---@param title string
+---@return OrgHeadline
+function M.set_headline_title(headline, title)
+  local file = headline.file
+  local bufnr = file:get_valid_bufnr()
+  local line_nr = headline:get_range().start_line
+  local line = headline:get_headline_line_content()
+  local current_title, offset = headline:get_title()
+  title = vim.trim((title or ''):gsub('[\r\n]+', ' '))
+  local new_line = line:sub(1, offset) .. title .. line:sub(offset + #current_title + 1)
+  vim.api.nvim_buf_set_lines(bufnr, line_nr - 1, line_nr, false, { new_line })
+  return headline:refresh()
+end
+
+---The scheduled or deadline date of a headline.
+---@param headline OrgHeadline
+---@param name 'SCHEDULED'|'DEADLINE'
+---@return OrgDate|nil
+function M.get_headline_date(headline, name)
+  if name == 'SCHEDULED' then
+    return headline:get_scheduled_date()
+  end
+  return headline:get_deadline_date()
+end
+
+---Set the scheduled or deadline date of a headline.
+---@param headline OrgHeadline
+---@param name 'SCHEDULED'|'DEADLINE'
+---@param date OrgDate
+function M.set_headline_date(headline, name, date)
+  if name == 'SCHEDULED' then
+    return headline:set_scheduled_date(date)
+  end
+  return headline:set_deadline_date(date)
+end
+
+---Remove the scheduled or deadline date of a headline.
+---@param headline OrgHeadline
+---@param name 'SCHEDULED'|'DEADLINE'
+function M.remove_headline_date(headline, name)
+  if name == 'SCHEDULED' then
+    return headline:remove_scheduled_date()
+  end
+  return headline:remove_deadline_date()
+end
+
 return M

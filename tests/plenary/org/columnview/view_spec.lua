@@ -12,6 +12,8 @@ describe('ColumnView', function()
     vim.bo.modified = false
     local file = helpers.create_file(lines, 'columns.org')
     file:reload_sync()
+    -- A previous test may have left the shared buffer locked by an open view.
+    vim.bo[file:bufnr()].modifiable = true
     local headline = file:get_headlines()[1]
     local columns_def = Parser.get_columns_for_headline(headline, require('orgmode').files)
     local headlines = { headline }
@@ -35,6 +37,8 @@ describe('ColumnView', function()
     vim.bo.modified = false
     local file = helpers.create_file(lines, 'columns.org')
     file:reload_sync()
+    -- A previous test may have left the shared buffer locked by an open view.
+    vim.bo[file:bufnr()].modifiable = true
     local columns_def = Parser.get_columns_for_file(file)
     local view = ColumnView:new({
       files = require('orgmode').files,
@@ -44,6 +48,31 @@ describe('ColumnView', function()
       bufnr = file:bufnr(),
     })
     return view, file
+  end
+
+  ---Stub the calendar UI so that opening it resolves with the given date.
+  ---@param date OrgDate|nil
+  ---@param cleared? boolean
+  ---@return table captured, fun()
+  local function stub_calendar(date, cleared)
+    local Calendar = require('orgmode.objects.calendar')
+    local original_new = Calendar.new
+    local captured = {}
+    Calendar.new = function(opts)
+      captured.opts = opts
+      return {
+        open = function()
+          return {
+            next = function(_, callback)
+              callback(date, cleared)
+            end,
+          }
+        end,
+      }
+    end
+    return captured, function()
+      Calendar.new = original_new
+    end
   end
 
   it('builds rows for a headline tree', function()
@@ -1462,5 +1491,160 @@ describe('ColumnView', function()
     for _, row in ipairs(view.rows) do
       assert.is_true(marked[row.headline:get_range().start_line - 1] or false)
     end
+  end)
+
+  it('renames the headline when editing the ITEM column', function()
+    local view = create_view({
+      '* TODO [#A] Original title  :tag1:tag2:',
+      ':PROPERTIES:',
+      ':COLUMNS: %25ITEM',
+      ':END:',
+    })
+    view.current_row = 1
+    view.current_col = 1
+
+    local original_input = vim.fn.input
+    local prompt_default
+    vim.fn.input = function(_, default, completion)
+      -- The title lookup returns `(title, offset)`; the offset must not leak
+      -- into the completion argument of `input()`.
+      assert.is_nil(completion)
+      prompt_default = default
+      return 'Renamed title'
+    end
+    view:edit_value()
+    vim.fn.input = original_input
+
+    local headline = view.rows[1].headline
+    assert.are.equal('Original title', prompt_default)
+    assert.are.equal('Renamed title', headline:get_title())
+    assert.are.equal('TODO', headline:get_todo())
+    assert.are.equal('A', headline:get_priority())
+    assert.are.same({ 'tag1', 'tag2' }, headline:get_own_tags())
+    -- The edit must not write a property named ITEM.
+    assert.is_nil(headline:get_property('ITEM'))
+  end)
+
+  it('refuses to edit CLOCKSUM columns', function()
+    for _, name in ipairs({ 'CLOCKSUM', 'CLOCKSUM_T' }) do
+      local view = create_view({
+        '* Clocked task',
+        ':PROPERTIES:',
+        (':COLUMNS: %%25ITEM %%%s'):format(name),
+        ':END:',
+        ':LOGBOOK:',
+        'CLOCK: [2000-01-03 Mon 08:00]--[2000-01-03 Mon 09:00] => 1:00',
+        ':END:',
+      })
+      view.current_row = 1
+      view.current_col = 2
+
+      local utils = require('orgmode.utils')
+      local original_echo = utils.echo_error
+      local messages = {}
+      utils.echo_error = function(msg)
+        table.insert(messages, msg)
+      end
+      view:edit_value()
+      utils.echo_error = original_echo
+
+      assert.are.equal('This special column cannot be edited', messages[1])
+      assert.is_nil(view.rows[1].headline:get_property(name:lower()))
+    end
+  end)
+
+  it('edits SCHEDULED and DEADLINE dates with the calendar', function()
+    local Date = require('orgmode.objects.date')
+    for _, name in ipairs({ 'SCHEDULED', 'DEADLINE' }) do
+      local view = create_view({
+        '* Date task',
+        ('%s: <2026-11-04 Wed>'):format(name),
+        ':PROPERTIES:',
+        (':COLUMNS: %%25ITEM %%%s'):format(name),
+        ':END:',
+      })
+      view.current_row = 1
+      view.current_col = 2
+
+      local captured, restore = stub_calendar(Date.from_string('2026-11-10'))
+      view:edit_value()
+      restore()
+
+      assert.are.equal('2026-11-04', captured.opts.date:format('%Y-%m-%d'))
+      assert.are.equal(name == 'SCHEDULED' and 'Set schedule' or 'Set deadline', captured.opts.title)
+
+      local date_name = name == 'SCHEDULED' and 'get_scheduled_date' or 'get_deadline_date'
+      local updated = view.rows[1].headline[date_name](view.rows[1].headline)
+      assert.are.equal('2026-11-10', updated:format('%Y-%m-%d'))
+    end
+  end)
+
+  it('clears the date when the calendar is cleared', function()
+    local view = create_view({
+      '* Date task',
+      'SCHEDULED: <2026-11-04 Wed>',
+      ':PROPERTIES:',
+      ':COLUMNS: %25ITEM %SCHEDULED',
+      ':END:',
+    })
+    view.current_row = 1
+    view.current_col = 2
+
+    local _, restore = stub_calendar(nil, true)
+    view:edit_value()
+    restore()
+
+    assert.is_nil(view.rows[1].headline:get_scheduled_date())
+  end)
+
+  it('shifts SCHEDULED and DEADLINE dates by one day with n and p', function()
+    for _, name in ipairs({ 'SCHEDULED', 'DEADLINE' }) do
+      local view = create_view({
+        '* Date task',
+        ('%s: <2026-11-04 Wed>'):format(name),
+        ':PROPERTIES:',
+        (':COLUMNS: %%25ITEM %%%s'):format(name),
+        ':END:',
+      })
+      view.current_row = 1
+      view.current_col = 2
+
+      local date_name = name == 'SCHEDULED' and 'get_scheduled_date' or 'get_deadline_date'
+
+      view:next_value()
+      assert.are.equal('2026-11-05', view.rows[1].headline[date_name](view.rows[1].headline):format('%Y-%m-%d'))
+
+      view:prev_value()
+      assert.are.equal('2026-11-04', view.rows[1].headline[date_name](view.rows[1].headline):format('%Y-%m-%d'))
+    end
+  end)
+
+  it('warns when cycling a property without allowed values', function()
+    local view = create_view({
+      '* Plain task',
+      ':PROPERTIES:',
+      ':COLUMNS: %25ITEM %Points',
+      ':Points: 5',
+      ':END:',
+    })
+    view.current_row = 1
+    view.current_col = 2
+
+    local utils = require('orgmode.utils')
+    local original_echo = utils.echo_error
+    local messages = {}
+    utils.echo_error = function(msg)
+      table.insert(messages, msg)
+    end
+    view:next_value()
+    view:prev_value()
+    view:select_value(1)
+    utils.echo_error = original_echo
+
+    assert.are.equal(3, #messages)
+    for _, message in ipairs(messages) do
+      assert.are.equal('Allowed values for this property have not been defined', message)
+    end
+    assert.are.equal('5', view.rows[1].headline:get_property('Points'))
   end)
 end)

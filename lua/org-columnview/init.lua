@@ -179,7 +179,10 @@ local function check_compatibility()
     'orgmode.agenda.view.token',
     'orgmode.objects.todo_state',
     'orgmode.objects.priority_state',
+    'orgmode.objects.calendar',
+    'orgmode.objects.date',
     'orgmode.org.links',
+    'orgmode.ui.input',
   }
   local missing = {}
   for _, module in ipairs(required) do
