@@ -483,7 +483,7 @@ end
 ---@param column OrgColumnSpec
 ---@return string
 function OrgAgendaColumnsType:_display_value(headline, column)
-  return Cells.modify_value_for_display(column.title, self:_cell_value(headline, column))
+  return Cells.display_value(column, self:_cell_value(headline, column))
 end
 
 ---@param bufnr? number
@@ -589,7 +589,7 @@ function OrgAgendaColumnsType:_build_summary_row(widths)
       for _, headline in ipairs(self.headlines) do
         table.insert(values, self:_cell_value(headline, col))
       end
-      local summary = Cells.compute_summary(values, col.summary_type)
+      local summary = Cells.compute_summary(values, col.summary_type, col.format)
       if summary then
         content = summary
       end

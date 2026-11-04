@@ -13,6 +13,14 @@ local compat = require('org-columnview.compat')
 local Cells = {}
 Cells.__index = Cells
 
+---Columns whose displayed value never uses the `;FMT` format in Emacs.
+local UNFORMATTED_COLUMNS = {
+  ITEM = true,
+  DEADLINE = true,
+  SCHEDULED = true,
+  TIMESTAMP = true,
+}
+
 function Cells:new()
   return setmetatable({
     _clocksum_cache = {},
@@ -255,9 +263,28 @@ end
 
 ---@param values string[]
 ---@param summary_type string
+---@param format? string
 ---@return string|nil
-function Cells.compute_summary(values, summary_type)
-  return Summary.compute(values, summary_type)
+function Cells.compute_summary(values, summary_type, format)
+  return Summary.compute(values, summary_type, format)
+end
+
+---Apply the column's `;FMT` format to a displayed value, like Emacs'
+---`org-columns--displayed-value`.
+---@param value string
+---@param column OrgColumnSpec
+---@return string
+function Cells.format_value(value, column)
+  if not column.format or value == '' or UNFORMATTED_COLUMNS[column.name] then
+    return value
+  end
+  local number = tonumber(value)
+  if not number then
+    -- Emacs' `string-to-number' takes the leading numeric part.
+    local prefix = value:match('^%s*([%+%-]?%d+%.?%d*)')
+    number = prefix and tonumber(prefix) or 0
+  end
+  return string.format(column.format, number)
 end
 
 ---Apply `org_columns_modify_value_for_display_function` to a value before it is
@@ -276,6 +303,22 @@ function Cells.modify_value_for_display(column, value)
     end
   end
   return value
+end
+
+---Value to display: the user display hook when it returns something, otherwise
+---the value formatted with the column's `;FMT`.
+---@param column OrgColumnSpec
+---@param value string
+---@return string
+function Cells.display_value(column, value)
+  local fn = columnview_config.modify_value_for_display_function
+  if type(fn) == 'function' then
+    local modified = fn(column.title, value)
+    if modified ~= nil then
+      return modified
+    end
+  end
+  return Cells.format_value(value, column)
 end
 
 return Cells

@@ -47,7 +47,11 @@ function Parser.unparse(columns)
       spec = spec .. '(' .. col.title .. ')'
     end
     if col.summary_type then
-      spec = spec .. '{' .. col.summary_type .. '}'
+      spec = spec .. '{' .. col.summary_type
+      if col.format then
+        spec = spec .. ';' .. col.format
+      end
+      spec = spec .. '}'
     end
     if col.allowed_values and #col.allowed_values > 0 then
       spec = spec .. '{' .. table.concat(col.allowed_values, ',') .. '}'
@@ -178,7 +182,7 @@ end
 ---@param spec string
 ---@return OrgColumnSpec|nil
 function Parser._parse_column_spec(spec)
-  local name, width, title, summary_type, allowed_values
+  local name, width, title, summary_type, summary_format, allowed_values
 
   -- Match: %[width]name[(title)]{summary}{values}
   -- %% in Lua pattern = literal %
@@ -219,18 +223,24 @@ function Parser._parse_column_spec(spec)
   -- Second brace (if present): allowed values
   if #brace_contents >= 1 then
     local first = brace_contents[1]
+    -- The operator may carry a format after a semicolon, like `min;%.2f`.
+    local operator, format = first:match('^([^;]+);(.*)$')
+    operator = operator or first
     -- Check if it's a summary type (:, +, $, min, max, mean, X, @, est+)
-    local is_summary = first:match('^[:+]')
-      or first == '$'
-      or first:match('^min$')
-      or first:match('^max$')
-      or first:match('^mean$')
-      or first:match('^X[/%%]?$')
-      or first:match('^@')
-      or first:match('^est%+$')
+    local is_summary = operator:match('^[:+]')
+      or operator == '$'
+      or operator:match('^min$')
+      or operator:match('^max$')
+      or operator:match('^mean$')
+      or operator:match('^X[/%%]?$')
+      or operator:match('^@')
+      or operator:match('^est%+$')
 
     if is_summary then
-      summary_type = first
+      summary_type = operator
+      if format and format ~= '' then
+        summary_format = format
+      end
       if #brace_contents >= 2 then
         allowed_values = Parser._parse_allowed_values(brace_contents[2])
       end
@@ -251,6 +261,7 @@ function Parser._parse_column_spec(spec)
     width = width,
     title = title,
     summary_type = summary_type,
+    format = summary_format,
     allowed_values = allowed_values,
     is_special = is_special,
   }

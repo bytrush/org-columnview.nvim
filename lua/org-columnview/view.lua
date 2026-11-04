@@ -150,7 +150,7 @@ function ColumnView:_create_row(headline, level)
       for _, child in ipairs(headline:get_child_headlines()) do
         table.insert(values, self:_get_cell_value(child, col))
       end
-      summary = Summary.compute(values, col.summary_type)
+      summary = Summary.compute(values, col.summary_type, col.format)
     end
     table.insert(cells, {
       headline = headline,
@@ -247,7 +247,7 @@ end
 ---@param cell OrgColumnViewCell
 ---@return string
 function ColumnView:_cell_content(cell)
-  local value = Cells.modify_value_for_display(cell.column.title, cell.value)
+  local value = Cells.display_value(cell.column, cell.value)
   if not cell.summary then
     return value
   end

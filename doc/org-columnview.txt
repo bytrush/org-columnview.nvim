@@ -121,10 +121,13 @@ Special column names: `ITEM`, `CLOCKSUM`, `CLOCKSUM_T`, `AGE`, `TAGS`,
 `ALLTAGS`, `TODO`, `PRIORITY`, `CATEGORY`, `SCHEDULED`, `DEADLINE`, `CLOSED`,
 `TIMESTAMP`, `TIMESTAMP_IA`, `FILE` and `BLOCKED`.
 
-Summary types: `+` (sum), `$` or `+;%.2f` (formatted sum), `:` (duration
-sum), `:min`, `:max`, `:mean` (duration extremes and mean), `min`, `max`,
-`mean` (numeric), `X`, `X/`, `X%` (checkboxes), `@min`, `@max`, `@mean` (age
+Summary types: `+` (sum), `$` (currency sum), `:` (duration sum), `:min`,
+`:max`, `:mean` (duration extremes and mean), `min`, `max`, `mean`
+(numeric), `X`, `X/`, `X%` (checkboxes), `@min`, `@max`, `@mean` (age
 extremes and mean) and `est+` (low/high estimates).
+
+An optional `;FMT` after `+`, `min`, `max` or `mean` formats the summary
+and the displayed cell values, e.g. `{+;%.2f}` or `{min;%.1f}`.
 
 The format is looked up in this order: a `COLUMNS` property on the headline
 or one of its ancestors, the `#+COLUMNS:` keyword of the file, and finally

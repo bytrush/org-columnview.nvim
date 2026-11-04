@@ -1491,6 +1491,31 @@ describe('ColumnView', function()
     columnview_config.opts.modify_value_for_display_function = original
   end)
 
+  it('formats cell values and summaries with a column format', function()
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %10Score{min;%.2f}',
+      ':Score: 3',
+      ':END:',
+      '** Child one',
+      ':PROPERTIES:',
+      ':Score: 5',
+      ':END:',
+      '** Child two',
+      ':PROPERTIES:',
+      ':Score: 8',
+      ':END:',
+    })
+
+    assert.are.equal('3.00 Σ=5.00', view:_cell_content(view.rows[1].cells[1]))
+    assert.are.equal('5.00', view:_cell_content(view.rows[2].cells[1]))
+    assert.are.equal('8.00', view:_cell_content(view.rows[3].cells[1]))
+    -- The stored value stays raw so editing and further summaries use it.
+    assert.are.equal('3', view.rows[1].cells[1].value)
+    assert.are.equal('5.00', view.rows[1].cells[1].summary)
+  end)
+
   it('cycles the TODO state via the todo action without fast access', function()
     local view = create_view({
       '* Parent',

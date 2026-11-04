@@ -40,6 +40,16 @@ describe('Column Summary', function()
     assert.are.equal('60', Summary.compute({ '0:00', '1:00', '2:00' }, 'mean'))
   end)
 
+  it('formats min, max and mean summaries', function()
+    assert.are.equal('30.0', Summary.compute({ '0:30', '1:00' }, 'min', '%.1f'))
+    assert.are.equal('120.00', Summary.compute({ '0:30', '1:00', '2:00' }, 'max', '%.2f'))
+    assert.are.equal('60.00', Summary.compute({ '0:00', '1:00', '2:00' }, 'mean', '%.2f'))
+  end)
+
+  it('formats a sum when the format is passed separately', function()
+    assert.are.equal('90.00', Summary.compute({ '0:30', '1:00' }, '+', '%.2f'))
+  end)
+
   it('returns nil when there are no numeric values', function()
     assert.is_nil(Summary.compute({ 'foo', 'bar' }, '+'))
   end)

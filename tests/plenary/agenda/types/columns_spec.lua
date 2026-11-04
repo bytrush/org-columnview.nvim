@@ -495,6 +495,22 @@ describe('Agenda Columns Type', function()
     assert.is_truthy(content:find('ALICE', 1, true))
   end)
 
+  it('formats cell values with a column format', function()
+    local view = build_view({
+      '* Score format probe',
+      ':PROPERTIES:',
+      ':Score: 3',
+      ':END:',
+    }, {
+      overriding_columns_format = '%25ITEM %Score{min;%.2f}',
+    })
+
+    local headline = view.headlines[headline_index(view, 'Score format probe')]
+    local col = view.columns[column_index(view, 'SCORE')]
+    assert.are.equal('3.00', view:_display_value(headline, col))
+    assert.are.equal('3', view:_cell_value(headline, col))
+  end)
+
   it('edits allowed values with edit_allowed', function()
     local view = build_view({
       '* Curator Parent',

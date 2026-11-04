@@ -5,6 +5,7 @@
 ---@field width number|nil
 ---@field title string|nil
 ---@field summary_type OrgColumnSummaryType|nil
+---@field format string|nil
 ---@field allowed_values string[]|nil
 ---@field is_special boolean
 

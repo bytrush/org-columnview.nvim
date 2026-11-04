@@ -403,7 +403,7 @@ parity nice-to-haves.
 
 | # | Item | Emacs behaviour | Current behaviour | Status |
 |---|------|-----------------|-------------------|--------|
-| 7.3.1 | Per-column format `FMT` (`{op;fmt}`) | `+`, `min`, `max`, `mean` honour it; any column with a format renders `(format fmt (string-to-number value))` | only `+;fmt` is honoured (`summary.lua:30`); `min;fmt`/`max;fmt`/`mean;fmt` ignored; the format is never applied to the displayed cell value (`cells.lua:32`) | [TODO] |
+| 7.3.1 | Per-column format `FMT` (`{op;fmt}`) | `+`, `min`, `max`, `mean` honour it; any column with a format renders `(format fmt (string-to-number value))` | `+`, `min`, `max` and `mean` honour `;FMT`; the format is also applied to displayed cell values (`parser.lua:227`, `summary.lua:43`, `cells.lua:277`) | [DONE] |
 | 7.3.2 | Format grammar | one brace group `{OPERATOR}`; allowed values live only in the `PROPERTY_ALL` property (e.g. `OWNER_ALL`) | implicit `PROPERTY_ALL` lookup now works; allowed values can still be inline in braces or referenced with `{NAME_ALL}` (`parser.lua:218-241`), so the same syntax means different things in Emacs | [TODO] (re-validate with 7.1.4; see notes below) |
 | 7.3.3 | `%%` escaping, `!` no-summary, `+`/`-`/`:` prefixes | not in Org 9.8 | not implemented | [N/A] |
 
@@ -501,7 +501,7 @@ Ordered by value per effort; update the checkbox when an item ships.
 
 - [x] 7.2.1–7.2.5 editing semantics (correctness: today these can write junk
       values such as `[ ]` into `POINTS` or `SCHEDULED`)
-- [ ] 7.3.1 per-column format `FMT`
+- [x] 7.3.1 per-column format `FMT`
 - [ ] 7.4.1, 7.4.2 summary semantics
 - [ ] 7.1.11 global column view, 7.5.1 view scope
 - [ ] 7.5.3–7.5.6 column editing polish

@@ -38,14 +38,30 @@ end
 
 ---@param values string[]
 ---@param summary_type string
+---@param format? string
 ---@return string|nil
-function Summary.compute(values, summary_type)
+function Summary.compute(values, summary_type, format)
+  if summary_type then
+    -- Keep accepting an embedded `OPERATOR;FMT` form for callers that pass the
+    -- whole brace content.
+    local operator, embedded = summary_type:match('^([^;]+);(.*)$')
+    if operator then
+      summary_type = operator
+      if not format and embedded ~= '' then
+        format = embedded
+      end
+    end
+  end
+
   local func = Summary.get_summary_function(summary_type)
   if not func then
     return nil
   end
 
   if func == 'sum' then
+    if format then
+      return Summary._sum_format(values, format)
+    end
     return Summary._sum(values)
   elseif func == 'sum_time' then
     return Summary._sum_time(values)
@@ -56,14 +72,13 @@ function Summary.compute(values, summary_type)
   elseif func == 'mean_time' then
     return Summary._mean_time(values)
   elseif func == 'sum_format' then
-    local format = summary_type:match('^%+;(.+)$') or '%.2f'
-    return Summary._sum_format(values, format)
+    return Summary._sum_format(values, format or '%.2f')
   elseif func == 'min' then
-    return Summary._min(values)
+    return Summary._min(values, format)
   elseif func == 'max' then
-    return Summary._max(values)
+    return Summary._max(values, format)
   elseif func == 'mean' then
-    return Summary._mean(values)
+    return Summary._mean(values, format)
   elseif func == 'checkbox_all' then
     return Summary._checkbox_all(values)
   elseif func == 'checkbox_fraction' then
@@ -180,7 +195,17 @@ function Summary._sum_format(values, format)
   return string.format(format, total)
 end
 
-function Summary._min(values)
+---@param value number
+---@param format? string
+---@return string
+function Summary._format_number(value, format)
+  return format and string.format(format, value) or tostring(value)
+end
+
+---@param values string[]
+---@param format? string
+---@return string|nil
+function Summary._min(values, format)
   local min_val = nil
   for _, v in ipairs(values) do
     local num = Summary._to_number(v)
@@ -190,10 +215,13 @@ function Summary._min(values)
       end
     end
   end
-  return min_val and tostring(min_val) or nil
+  return min_val and Summary._format_number(min_val, format) or nil
 end
 
-function Summary._max(values)
+---@param values string[]
+---@param format? string
+---@return string|nil
+function Summary._max(values, format)
   local max_val = nil
   for _, v in ipairs(values) do
     local num = Summary._to_number(v)
@@ -203,10 +231,13 @@ function Summary._max(values)
       end
     end
   end
-  return max_val and tostring(max_val) or nil
+  return max_val and Summary._format_number(max_val, format) or nil
 end
 
-function Summary._mean(values)
+---@param values string[]
+---@param format? string
+---@return string|nil
+function Summary._mean(values, format)
   local sum = 0
   local count = 0
   for _, v in ipairs(values) do
@@ -219,7 +250,7 @@ function Summary._mean(values)
   if count == 0 then
     return nil
   end
-  return tostring(sum / count)
+  return Summary._format_number(sum / count, format)
 end
 
 function Summary._checkbox_all(values)

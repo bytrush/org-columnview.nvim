@@ -71,7 +71,19 @@ describe('Column Parser', function()
     assert.is_nil(result.columns[1].allowed_values)
 
     assert.are.equal('TOTAL', result.columns[2].name)
-    assert.are.equal('+;%.2f', result.columns[2].summary_type)
+    assert.are.equal('+', result.columns[2].summary_type)
+    assert.are.equal('%.2f', result.columns[2].format)
+  end)
+
+  it('parses a format after min, max and mean operators', function()
+    local result = Parser.parse('%10Low{min;%.1f} %10High{max;%.0f} %10Avg{mean;%.2f}')
+
+    assert.are.equal('min', result.columns[1].summary_type)
+    assert.are.equal('%.1f', result.columns[1].format)
+    assert.are.equal('max', result.columns[2].summary_type)
+    assert.are.equal('%.0f', result.columns[2].format)
+    assert.are.equal('mean', result.columns[3].summary_type)
+    assert.are.equal('%.2f', result.columns[3].format)
   end)
 
   it('handles empty format', function()
@@ -131,13 +143,14 @@ describe('Column Parser', function()
     local columns = {
       { name = 'ITEM', width = 25, title = 'ITEM' },
       { name = 'EFFORT', width = 10, title = 'Effort', summary_type = ':' },
+      { name = 'TOTAL', width = 10, title = 'Total', summary_type = '+', format = '%.2f' },
       { name = 'OWNER', width = 12, title = 'Owner?', allowed_values = { 'Owner_ALL' } },
     }
-    assert.are.equal('%25ITEM %10EFFORT{:} %12OWNER(Owner?){Owner_ALL}', Parser.unparse(columns))
+    assert.are.equal('%25ITEM %10EFFORT{:} %10TOTAL{+;%.2f} %12OWNER(Owner?){Owner_ALL}', Parser.unparse(columns))
   end)
 
   it('round trips a format string through parse and unparse', function()
-    local format = '%25ITEM %10EFFORT{:} %12OWNER(Owner?){Owner_ALL}'
+    local format = '%25ITEM %10EFFORT{:} %10TOTAL{+;%.2f} %12OWNER(Owner?){Owner_ALL}'
     assert.are.equal(format, Parser.unparse(Parser.parse(format).columns))
   end)
 end)
