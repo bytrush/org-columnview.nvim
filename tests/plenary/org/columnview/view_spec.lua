@@ -1119,6 +1119,83 @@ describe('ColumnView', function()
     assert.is_nil(columnview.column_view)
   end)
 
+  it('scopes the view to the headline that owns the COLUMNS property', function()
+    local file = helpers.create_file({
+      '#+COLUMNS: %25ITEM %10Owner',
+      '',
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %25ITEM %10Points',
+      ':END:',
+      '** Child A',
+      ':PROPERTIES:',
+      ':Points: 1',
+      ':END:',
+      '** Child B',
+      '* Other',
+    }, 'scope.org')
+    file:reload_sync()
+
+    local child_a
+    for _, headline in ipairs(file:get_headlines()) do
+      if (headline:get_title()) == 'Child A' then
+        child_a = headline
+      end
+    end
+    assert.is_not_nil(child_a)
+    vim.api.nvim_win_set_cursor(0, { child_a:get_range().start_line, 0 })
+
+    local columnview = require('org-columnview')
+    local view = columnview.org_columns()
+    assert.is_not_nil(view)
+    assert.are.equal('POINTS', view.columns[2].name)
+
+    local titles = {}
+    for _, row in ipairs(view.rows) do
+      table.insert(titles, (row.headline:get_title()))
+    end
+    assert.are.same({ 'Parent', 'Child A', 'Child B' }, titles)
+
+    columnview.org_columns_quit()
+  end)
+
+  it('opens a global view with the global option', function()
+    local file = helpers.create_file({
+      '#+COLUMNS: %25ITEM %10Owner',
+      '',
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %25ITEM %10Points',
+      ':END:',
+      '** Child A',
+      '* Other',
+    }, 'global-scope.org')
+    file:reload_sync()
+
+    local child_a
+    for _, headline in ipairs(file:get_headlines()) do
+      if (headline:get_title()) == 'Child A' then
+        child_a = headline
+      end
+    end
+    assert.is_not_nil(child_a)
+    vim.api.nvim_win_set_cursor(0, { child_a:get_range().start_line, 0 })
+
+    local columnview = require('org-columnview')
+    local view = columnview.org_columns({ global = true })
+    assert.is_not_nil(view)
+    -- The whole-file view uses the file format, not the cursor's COLUMNS.
+    assert.are.equal('OWNER', view.columns[2].name)
+
+    local titles = {}
+    for _, row in ipairs(view.rows) do
+      table.insert(titles, (row.headline:get_title()))
+    end
+    assert.are.same({ 'Parent', 'Child A', 'Other' }, titles)
+
+    columnview.org_columns_quit()
+  end)
+
   it('opens a whole-file view when point is before the first headline', function()
     local file = helpers.create_file({
       '#+COLUMNS: %10ITEM %Owner',

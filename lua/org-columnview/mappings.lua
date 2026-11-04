@@ -173,12 +173,17 @@ function M.register_core_mapping(entry)
   local core_defaults = require('orgmode.config.defaults')
   local core_config = require('orgmode.config')
 
+  local command = ('<cmd>lua require("org-columnview").%s()<CR>'):format(entry.name)
+  if entry.name == 'org_columns' then
+    -- A count prefix (`1<prefix>xc`) requests the whole-file view.
+    command = '<cmd>lua require("org-columnview").org_columns({ global = vim.v.count > 0 })<CR>'
+  end
+
   core_mappings[entry.category] = core_mappings[entry.category] or {}
   if not core_mappings[entry.category][entry.name] then
-    core_mappings[entry.category][entry.name] = MapEntry:new(
-      ('<cmd>lua require("org-columnview").%s()<CR>'):format(entry.name),
-      { opts = { desc = 'org column view', help_desc = 'Show the column view' } }
-    )
+    core_mappings[entry.category][entry.name] = MapEntry:new(command, {
+      opts = { desc = 'org column view', help_desc = 'Show the column view' },
+    })
   end
 
   core_defaults.mappings[entry.category] = core_defaults.mappings[entry.category] or {}
@@ -212,6 +217,10 @@ function M.setup_entry_points()
             -- In the agenda the column view of the agenda is opened, like in
             -- Emacs, where the same key opens the view of the current buffer.
             return require('org-columnview').org_agenda_columns()
+          end
+          if entry.name == 'org_columns' then
+            -- A count prefix (`1<prefix>xc`) requests the whole-file view.
+            return require('org-columnview').org_columns({ global = vim.v.count > 0 })
           end
           require('org-columnview')[entry.name]()
         end, { nowait = true, silent = true, desc = 'org column view' })

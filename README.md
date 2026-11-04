@@ -41,8 +41,10 @@ orgmode instance.
 ## Usage
 
 - `org_columns` (`<prefix>xc` by default) toggles the column view in an org
-  buffer. It shows the subtree of the headline under the cursor, or the whole
-  file when the cursor is before the first headline.
+  buffer. It shows the subtree of the headline that owns the `COLUMNS`
+  property, the subtree under the cursor when no entry owns it, or the whole
+  file when the cursor is before the first headline. A count prefix
+  (`1<prefix>xc`) always shows the whole file, like Emacs' `C-u C-c C-x C-c`.
 - `org_agenda_columns` (`<prefix>ac` by default) opens the agenda as a column
   view.
 

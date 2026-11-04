@@ -29,6 +29,11 @@ describe('Column View Mappings', function()
     assert.are.equal('<prefix>ac', defaults.mappings.agenda.org_agenda_columns)
   end)
 
+  it('passes a count prefix through to the global view', function()
+    local entry = require('orgmode.config.mappings').org.org_columns
+    assert.is_truthy(entry.handler:find('global = vim.v.count > 0', 1, true))
+  end)
+
   it('attaches the column view to the org buffer', function()
     local bufnr = vim.api.nvim_create_buf(false, true)
     require('orgmode.config'):setup_mappings('org', bufnr)

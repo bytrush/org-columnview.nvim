@@ -29,16 +29,30 @@ end
 
 ---Open the column view for the current buffer, or close it when it is already
 ---open.
+---@param opts? { global?: boolean } `global` shows the whole file instead of
+---the subtree around the cursor, like a prefix argument to `org-columns`.
 ---@return OrgColumnView|nil
-function M.org_columns()
+function M.org_columns(opts)
   if M.column_view then
     M.org_columns_quit()
     return nil
   end
 
+  opts = opts or {}
   local files = get_files()
+  local file = files:get_current_file()
   local headline = files:get_closest_headline_or_nil()
   local headlines, columns_def
+
+  if opts.global then
+    -- A global view ignores the cursor's subtree and any local COLUMNS
+    -- property, like `org-columns` with a prefix argument.
+    headline = nil
+  elseif headline then
+    -- Scope the view to the headline that owns the COLUMNS property, so a
+    -- child entry shows the configured ancestor's subtree.
+    headline = Parser.get_columns_owner(headline) or headline
+  end
 
   if headline then
     columns_def = Parser.get_columns_for_headline(headline)
@@ -47,8 +61,8 @@ function M.org_columns()
       vim.list_extend(headlines, headline:get_child_headlines())
     end
   else
-    -- Point is before the first headline: show the whole file.
-    local file = files:get_current_file()
+    -- Point is before the first headline, or the view is global: show the
+    -- whole file.
     if not file then
       return require('orgmode.utils').echo_warning('No column view definition found')
     end
@@ -67,7 +81,7 @@ function M.org_columns()
     headlines = headlines,
     subtree = headline ~= nil,
     columns_def = columns_def,
-    bufnr = files:get_current_file() and files:get_current_file():bufnr() or 0,
+    bufnr = file and file:bufnr() or 0,
     -- `q` and `toggle_or_quit` call `view:quit()` directly. Clear the global
     -- state and the refresh autocmd here too, otherwise the view stays
     -- registered and the next `<prefix>xc` only clears the stale view.

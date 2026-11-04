@@ -295,6 +295,22 @@ function Parser.get_columns_format_for_headline(headline)
   return compat.get_file_columns(headline.file)
 end
 
+---The headline whose own `COLUMNS` property defines the view format. Mirrors
+---Emacs' `org-entry-property-inherited-from`, which is what `org-columns`
+---uses to decide where the viewed subtree starts.
+---@param headline OrgHeadline
+---@return OrgHeadline|nil
+function Parser.get_columns_owner(headline)
+  local current = headline
+  while current do
+    if current:get_property('COLUMNS', false) then
+      return current
+    end
+    current = compat.get_parent_headline(current)
+  end
+  return nil
+end
+
 ---@param headline OrgHeadline
 ---@return OrgColumnsDefinition|nil
 function Parser.get_columns_for_headline(headline)

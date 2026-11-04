@@ -382,7 +382,7 @@ parity nice-to-haves.
 | 7.1.8 | Appointment duration counts toward `Effort` (`org-agenda-columns-add-appointments-to-effort-sum`) | `org-colview.el:1883` | — | [TODO] |
 | 7.1.9 | Start the agenda in column view (`org-agenda-view-columns-initially`) | `org-agenda.el:2103` | — | [TODO] |
 | 7.1.10 | Skip archived trees (`org-columns-skip-archived-trees`) | `org.el:4142` | — | [TODO] |
-| 7.1.11 | Global column view via prefix argument (`C-u C-c C-x C-c`) | `org-colview.el:887` | scope is always the cursor's headline, `lua/org-columnview/init.lua:70` | [TODO] |
+| 7.1.11 | Global column view via prefix argument (`C-u C-c C-x C-c`) | `org-colview.el:887` | a count prefix (`1<prefix>xc`, the Vim equivalent of `C-u`) opens the whole-file view (`init.lua:35`, `mappings.lua:179`) | [DONE] |
 | 7.1.12 | Configurable truncation marker (`org-columns-ellipses`, default `..`) | `org.el:3221` | hardcoded `…`, `lua/org-columnview/cells.lua:229` | [TODO] |
 | 7.1.13 | Configurable checkbox values (`org-columns-checkbox-allowed-values`) | `org-colview.el:62` | hardcoded `[ ]`/`[X]` | [TODO] |
 
@@ -484,7 +484,7 @@ Parity plan (revisit with 7.1.4):
 
 | # | Item | Emacs behaviour | Current behaviour | Status |
 |---|------|-----------------|-------------------|--------|
-| 7.5.1 | View scope | scoped to the ancestor that owns the `COLUMNS` property | scoped to the headline under the cursor, so a child of a `:COLUMNS:`-owning parent shows only its own subtree | [TODO] |
+| 7.5.1 | View scope | scoped to the ancestor that owns the `COLUMNS` property | the view starts at the headline that owns `COLUMNS`, falling back to the cursor's headline (`parser.lua:303`, `init.lua:53`) | [DONE] |
 | 7.5.2 | Header rendering | `header-line-format` with `\|` separators, scrolls horizontally with the window | winbar with `│` borders, no hscroll sync (`init.lua:373`) | [DROPPED] (winbar is the Neovim equivalent) |
 | 7.5.3 | `narrow`/`widen` | accept a prefix argument (width ± N) | fixed ±1, `view.lua:1150`, `view.lua:1169` | [TODO] |
 | 7.5.4 | `delete_column` | asks for confirmation (`y-or-n-p`) | deletes without confirmation, `view.lua:1240` | [TODO] |
@@ -503,7 +503,7 @@ Ordered by value per effort; update the checkbox when an item ships.
       values such as `[ ]` into `POINTS` or `SCHEDULED`)
 - [x] 7.3.1 per-column format `FMT`
 - [x] 7.4.1, 7.4.2 summary semantics
-- [ ] 7.1.11 global column view, 7.5.1 view scope
+- [x] 7.1.11 global column view, 7.5.1 view scope
 - [ ] 7.5.3–7.5.6 column editing polish
 - [ ] 7.1.4, 7.1.5 config hooks
 - [ ] 7.3.2 Emacs-compatible format grammar (re-validate alongside 7.1.4)
