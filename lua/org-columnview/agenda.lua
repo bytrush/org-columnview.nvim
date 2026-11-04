@@ -81,6 +81,15 @@ local function restore_keymaps(bufnr, snapshot)
   end
 end
 
+---A headline of the current agenda view, captured so that it can be resolved
+---again after the file is reloaded.
+---@class OrgAgendaColumnsProvidedHeadline
+---@field headline OrgHeadline
+---@field filename string
+---@field id? string
+---@field title string
+---@field start_line number
+
 ---@class OrgAgendaColumnsTypeOpts
 ---@field files OrgFiles
 ---@field highlighter OrgHighlighter
@@ -95,6 +104,7 @@ end
 ---@field id? string
 ---@field overriding_columns_format? string
 ---@field on_edit? fun(headline: OrgHeadline, setter: fun(headline: OrgHeadline))
+---@field headlines? OrgHeadline[] Explicit rows, e.g. the entries of the current agenda view
 
 ---@class OrgAgendaColumnsType:OrgAgendaViewType
 ---@field files OrgFiles
@@ -115,6 +125,7 @@ end
 ---@field columns OrgColumnSpec[]
 ---@field allowed_values table<string, string[]>
 ---@field headlines OrgHeadline[]
+---@field _provided_headlines? OrgAgendaColumnsProvidedHeadline[]
 ---@field _widths? number[]
 ---@field _base_format? string
 ---@field _columns_dirty? boolean
@@ -146,6 +157,15 @@ function OrgAgendaColumnsType:new(opts)
     columns = {},
     allowed_values = {},
     headlines = {},
+    _provided_headlines = opts.headlines and vim.tbl_map(function(headline)
+      return {
+        headline = headline,
+        filename = headline.file.filename,
+        id = headline:get_property('id', false),
+        title = (headline:get_title()),
+        start_line = headline:get_range().start_line,
+      }
+    end, opts.headlines) or nil,
     _base_format = nil,
     _columns_dirty = false,
     current_row = 1,
@@ -281,7 +301,139 @@ function OrgAgendaColumnsType:_resolve_format()
   return nil
 end
 
+---Resolve the provided headlines again so that edits and reloads are reflected.
+---The set of rows stays fixed, but each row follows the headline it was
+---captured from. Headlines are matched by ID, then by title and line together,
+---then by title (nearest line), and finally by line. A row whose file is still
+---known but whose headline is gone is dropped; a row whose file is not loaded
+---at all keeps the captured headline.
+---@return OrgHeadline[]
+function OrgAgendaColumnsType:_resolve_provided_headlines()
+  local files_by_name = {}
+  for _, orgfile in ipairs(self.files:all()) do
+    files_by_name[orgfile.filename] = orgfile
+  end
+
+  local indexes = {}
+
+  ---@param filename string
+  ---@return table|nil
+  local function index_for(filename)
+    if indexes[filename] then
+      return indexes[filename]
+    end
+
+    local orgfile = files_by_name[filename]
+    if not orgfile then
+      return nil
+    end
+
+    local index = { by_id = {}, by_line = {}, by_title = {} }
+    for _, headline in ipairs(orgfile:get_headlines()) do
+      local id = headline:get_property('id', false)
+      if id then
+        index.by_id[id] = headline
+      end
+      local line = headline:get_range().start_line
+      index.by_line[line] = index.by_line[line] or headline
+      local title = (headline:get_title())
+      index.by_title[title] = index.by_title[title] or {}
+      table.insert(index.by_title[title], headline)
+    end
+
+    indexes[filename] = index
+    return index
+  end
+
+  ---@param filename string
+  ---@param headline OrgHeadline
+  ---@return string
+  local function key_for(filename, headline)
+    return filename .. '\0' .. headline:get_range().start_line
+  end
+
+  local provided = self._provided_headlines or {}
+  local claimed = {}
+  local resolved = {}
+
+  ---Match by ID.
+  ---@param row table
+  ---@param index table
+  ---@return OrgHeadline|nil
+  local function match_id(row, index)
+    return row.id and index.by_id[row.id] or nil
+  end
+
+  ---Match by title and line together.
+  ---@param row table
+  ---@param index table
+  ---@return OrgHeadline|nil
+  local function match_title_and_line(row, index)
+    local headline = index.by_line[row.start_line]
+    if headline and (headline:get_title()) == row.title then
+      return headline
+    end
+    return nil
+  end
+
+  ---Match by title, choosing the candidate closest to the captured line.
+  ---@param row table
+  ---@param index table
+  ---@return OrgHeadline|nil
+  local function match_title(row, index)
+    local nearest, nearest_distance
+    for _, headline in ipairs(index.by_title[row.title] or {}) do
+      if not claimed[key_for(row.filename, headline)] then
+        local distance = math.abs(headline:get_range().start_line - row.start_line)
+        if not nearest_distance or distance < nearest_distance then
+          nearest, nearest_distance = headline, distance
+        end
+      end
+    end
+    return nearest
+  end
+
+  ---Match by line.
+  ---@param row table
+  ---@param index table
+  ---@return OrgHeadline|nil
+  local function match_line(row, index)
+    return index.by_line[row.start_line]
+  end
+
+  local matchers = { match_id, match_title_and_line, match_title, match_line }
+  for _, matcher in ipairs(matchers) do
+    for row_index, row in ipairs(provided) do
+      if resolved[row_index] == nil then
+        local index = index_for(row.filename)
+        local headline = index and matcher(row, index)
+        if headline and not claimed[key_for(row.filename, headline)] then
+          claimed[key_for(row.filename, headline)] = true
+          resolved[row_index] = headline
+        end
+      end
+    end
+  end
+
+  local result = {}
+  for row_index, row in ipairs(provided) do
+    local headline = resolved[row_index]
+    if headline then
+      table.insert(result, headline)
+    elseif not files_by_name[row.filename] then
+      table.insert(result, row.headline)
+    end
+  end
+
+  return result
+end
+
 function OrgAgendaColumnsType:_collect_headlines()
+  if self._provided_headlines then
+    self.headlines = self:_resolve_provided_headlines()
+    return
+  end
+
   self.headlines = {}
   for _, orgfile in ipairs(self.files:all()) do
     for i, headline in ipairs(orgfile:get_opened_headlines()) do

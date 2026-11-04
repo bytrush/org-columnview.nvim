@@ -666,6 +666,105 @@ describe('Agenda Columns Type', function()
     assert.is_nil(keys['s'])
   end)
 
+  it('renders only the provided headlines, in the given order', function()
+    local orgfile = helpers.create_agenda_file({
+      '#+COLUMNS: %ITEM',
+      '',
+      '* One',
+      '* Two',
+      '* Three',
+    })
+    local headlines = orgfile:get_headlines()
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    local view = OrgAgendaColumnsType:new({
+      files = org.files,
+      highlighter = org.highlighter,
+      agenda_filter = org.agenda.filters,
+      headlines = { headlines[3], headlines[1] },
+    })
+    view:prepare():wait()
+    view:render(bufnr)
+
+    local content = table.concat(render_lines(view), '\n')
+    assert.is_nil(content:find('Two', 1, true))
+    local three = content:find('Three', 1, true)
+    local one = content:find('One', 1, true)
+    assert.is_not_nil(three)
+    assert.is_not_nil(one)
+    assert.is_true(three < one)
+  end)
+
+  it('drops a provided headline that was deleted from its file', function()
+    local orgfile = helpers.create_agenda_file({
+      '#+COLUMNS: %ITEM',
+      '',
+      '* Alpha',
+      '* Beta',
+    })
+    local headlines = orgfile:get_headlines()
+    assert.are.equal(2, #headlines)
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    local view = OrgAgendaColumnsType:new({
+      files = org.files,
+      highlighter = org.highlighter,
+      agenda_filter = org.agenda.filters,
+      headlines = { headlines[1], headlines[2] },
+    })
+    view:prepare():wait()
+    view:render(bufnr)
+
+    local function titles()
+      return vim.tbl_map(function(headline)
+        return (headline:get_title())
+      end, view.headlines)
+    end
+
+    assert.are.same({ 'Alpha', 'Beta' }, titles())
+
+    vim.api.nvim_buf_set_lines(orgfile:bufnr(), 0, -1, false, {
+      '#+COLUMNS: %ITEM',
+      '',
+      '* Beta',
+    })
+    view.files:load_sync(true)
+    view:render(bufnr)
+
+    assert.are.same({ 'Beta' }, titles())
+  end)
+
+  it('keeps the provided rows in order when a headline moves', function()
+    local orgfile = helpers.create_agenda_file({
+      '#+COLUMNS: %ITEM',
+      '',
+      '* Alpha',
+      '* Beta',
+    })
+    local headlines = orgfile:get_headlines()
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    local view = OrgAgendaColumnsType:new({
+      files = org.files,
+      highlighter = org.highlighter,
+      agenda_filter = org.agenda.filters,
+      headlines = { headlines[1], headlines[2] },
+    })
+    view:prepare():wait()
+    view:render(bufnr)
+
+    vim.api.nvim_buf_set_lines(orgfile:bufnr(), 0, -1, false, {
+      '#+COLUMNS: %ITEM',
+      '',
+      '* Beta',
+      '* Alpha',
+    })
+    view.files:load_sync(true)
+    view:render(bufnr)
+
+    local titles = vim.tbl_map(function(headline)
+      return (headline:get_title())
+    end, view.headlines)
+    assert.are.same({ 'Alpha', 'Beta' }, titles)
+  end)
+
   it('restores pre-existing buffer local mappings on clear', function()
     local view = build_view({ '* Restore Probe' }, { overriding_columns_format = '%ITEM %TODO' })
     local bufnr = view.bufnr

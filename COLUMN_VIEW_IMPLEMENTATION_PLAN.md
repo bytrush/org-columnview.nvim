@@ -273,6 +273,15 @@ Per Emacs:
 ### 3.3 Summary in Agenda [DONE]
 Summary row is rendered; values are computed from the visible agenda rows.
 
+### 3.4 Current Agenda Scope [DONE]
+Opening the column view from the agenda buffer limits the rows to the entries
+currently shown by `agenda.views[*]:get_lines()`, in the displayed order and
+deduplicated by file and start line. Outside the agenda buffer all entries are
+shown. The row set is a snapshot: on `redo` each row is resolved again (by ID,
+title and line, nearest title, then line) so edits and reloads stay in sync,
+and rows whose headline was removed are dropped. When nvim-orgmode provides the
+`agenda.columns` view itself, the plugin defers to it.
+
 ---
 
 ## Phase 4: Configuration & Mappings
@@ -318,6 +327,8 @@ The original `col_view_*` names were never used.
   format)
 - `tests/plenary/org/columnview/mappings_spec.lua` (entry points, agenda
   prompt menu)
+- `tests/plenary/org/columnview/agenda_scope_spec.lua` (current agenda scope
+  and row sync)
 The plan's `org_buffer_spec.lua` / `agenda_spec.lua` / `editing_spec.lua`
 names do not exist; coverage lives in the files above.
 

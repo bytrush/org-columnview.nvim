@@ -103,11 +103,63 @@ function M.org_columns_quit()
   M.column_view = nil
 end
 
----Open the agenda as a column view.
+---Whether the current buffer is the agenda buffer.
+---@return boolean
+local function is_agenda_buffer()
+  return vim.bo.filetype == 'orgagenda'
+end
+
+---The headlines currently shown in the agenda views. Only meaningful when the
+---current buffer is the agenda buffer.
+---@return OrgHeadline[]|nil
+local function get_current_agenda_headlines()
+  if not is_agenda_buffer() then
+    return nil
+  end
+
+  local agenda = require('orgmode').agenda
+  if not agenda.views or #agenda.views == 0 then
+    return nil
+  end
+
+  local headlines = {}
+  local seen = {}
+  for _, view in ipairs(agenda.views) do
+    if type(view.get_lines) == 'function' then
+      local ok, lines = pcall(view.get_lines, view)
+      if ok then
+        for _, line in ipairs(lines or {}) do
+          local headline = line.headline
+          if headline then
+            local key = headline.file.filename .. '\0' .. headline:get_range().start_line
+            if not seen[key] then
+              seen[key] = true
+              table.insert(headlines, headline)
+            end
+          end
+        end
+      else
+        vim.notify(('org-columnview: could not read the agenda view lines: %s'):format(lines), vim.log.levels.WARN)
+      end
+    end
+  end
+
+  return headlines
+end
+
+---Open the agenda as a column view. When the current buffer is the agenda
+---buffer, the columns are limited to the entries of the current agenda view.
+---Otherwise all entries are shown. When nvim-orgmode provides the
+---`agenda.columns` view itself, that one is used instead.
 function M.org_agenda_columns()
   local agenda = require('orgmode').agenda
   if agenda.columns then
     return agenda:columns()
+  end
+
+  local headlines = get_current_agenda_headlines()
+  if headlines then
+    return agenda:open_view('columns', { headlines = headlines })
   end
   return agenda:open_view('columns')
 end
@@ -166,8 +218,10 @@ local function register_agenda_menu()
       end
     end
 
+    local label = is_agenda_buffer() and self.views and #self.views > 0 and 'Column view of the current agenda'
+      or 'Column view of all entries'
     local option = {
-      label = 'Column view of all entries',
+      label = label,
       key = 'c',
       action = function()
         return M.org_agenda_columns()
