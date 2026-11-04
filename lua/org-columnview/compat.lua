@@ -82,6 +82,33 @@ function M.get_keyword_property(file, name)
   return nil
 end
 
+---Prompt for a string with completion from a fixed list. Uses a `customlist`
+---callback on `vim.fn.input()` so the column editor keeps its synchronous
+---prompt flow.
+---@param prompt string
+---@param default? string
+---@param items string[]
+---@return string
+function M.input_with_completion(prompt, default, items)
+  _G.orgmode = _G.orgmode or {}
+  _G.orgmode.__columnview_input_completion = function(arg_lead)
+    local lead = (arg_lead or ''):lower()
+    local matches = {}
+    for _, item in ipairs(items) do
+      if item:lower():find(lead, 1, true) == 1 then
+        table.insert(matches, item)
+      end
+    end
+    return matches
+  end
+
+  return vim.fn.input({
+    prompt = prompt,
+    default = default or '',
+    completion = 'customlist,v:lua.orgmode.__columnview_input_completion',
+  })
+end
+
 ---Read a property from a headline, its ancestors, or the file-wide keywords.
 ---Emacs uses this inheritance chain when it looks up `PROPERTY_ALL` for the
 ---allowed values of a column.

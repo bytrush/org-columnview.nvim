@@ -499,6 +499,139 @@ describe('ColumnView', function()
     assert.are.equal(9, view.rows[1].cells[1].column.width)
   end)
 
+  it('adjusts column width by a count prefix', function()
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %10Owner',
+      ':END:',
+    })
+    view.current_row = 1
+    view.current_col = 1
+
+    view:widen_column(3)
+    assert.are.equal(13, view.columns[1].width)
+
+    view:narrow_column(5)
+    assert.are.equal(8, view.columns[1].width)
+
+    view:narrow_column(20)
+    assert.are.equal(1, view.columns[1].width)
+  end)
+
+  it('inserts a column with title, width, summary and format', function()
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %25ITEM',
+      ':END:',
+    })
+    view.current_row = 1
+    view.current_col = 1
+
+    local original_input = vim.fn.input
+    local responses = { 'Score', 'Score?', '12', 'mean', '%.1f' }
+    local calls = {}
+    local idx = 0
+    vim.fn.input = function(arg, default)
+      idx = idx + 1
+      table.insert(calls, { arg = arg, default = default })
+      return responses[idx]
+    end
+    view:insert_column()
+    vim.fn.input = original_input
+
+    local col = view.columns[1]
+    assert.are.equal('SCORE', col.name)
+    assert.are.equal('Score?', col.title)
+    assert.are.equal(12, col.width)
+    assert.are.equal('mean', col.summary_type)
+    assert.are.equal('%.1f', col.format)
+
+    -- Property and summary prompts offer completion.
+    assert.are.equal('Property: ', calls[1].arg.prompt)
+    assert.is_truthy(calls[1].arg.completion:find('customlist', 1, true))
+    assert.are.equal('Summary: ', calls[4].arg.prompt)
+    assert.is_truthy(calls[4].arg.completion:find('customlist', 1, true))
+  end)
+
+  it('marks a newly inserted special column as special', function()
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %25ITEM',
+      ':END:',
+    })
+    view.current_row = 1
+    view.current_col = 1
+
+    local original_input = vim.fn.input
+    local responses = { 'TODO', '', '', '', '' }
+    local idx = 0
+    vim.fn.input = function()
+      idx = idx + 1
+      return responses[idx]
+    end
+    view:insert_column()
+    vim.fn.input = original_input
+
+    assert.are.equal('TODO', view.columns[1].name)
+    assert.is_true(view.columns[1].is_special)
+  end)
+
+  it('asks for confirmation before deleting a column', function()
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %25ITEM %10Owner',
+      ':Owner: Alice',
+      ':END:',
+    })
+    view.current_row = 1
+    view.current_col = 2
+
+    local original_confirm = vim.fn.confirm
+    vim.fn.confirm = function()
+      return 2
+    end
+    view:delete_column()
+    assert.is_not_nil(view.columns[2])
+
+    vim.fn.confirm = function()
+      return 1
+    end
+    view:delete_column()
+    vim.fn.confirm = original_confirm
+
+    assert.are.equal(1, #view.columns)
+    assert.are.equal('ITEM', view.columns[1].name)
+  end)
+
+  it('persists a column format through edit_attributes', function()
+    local view, file = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %10Score',
+      ':END:',
+    })
+    view.current_row = 1
+    view.current_col = 1
+
+    local original_input = vim.fn.input
+    local responses = { 'Score', '', '10', 'mean', '%.2f' }
+    local idx = 0
+    vim.fn.input = function()
+      idx = idx + 1
+      return responses[idx]
+    end
+    view:edit_attributes()
+    vim.fn.input = original_input
+
+    assert.are.equal('%.2f', view.columns[1].format)
+    local headline = file:get_headlines()[1]
+    assert.are.equal('%10SCORE{mean;%.2f}', headline:get_property('COLUMNS', false))
+  end)
+
   it('edits the current column attributes', function()
     local view = create_view({
       '* Parent',
@@ -515,7 +648,7 @@ describe('ColumnView', function()
     view.current_col = 1
 
     local original_input = vim.fn.input
-    local responses = { 'Status', 'Status?', '12', '+' }
+    local responses = { 'Status', 'Status?', '12', '+', '' }
     local idx = 0
     vim.fn.input = function()
       idx = idx + 1
@@ -543,7 +676,7 @@ describe('ColumnView', function()
     view.current_col = 1
 
     local original_input = vim.fn.input
-    local responses = { 'CLOCKSUM', 'CLOCKSUM', '', '' }
+    local responses = { 'CLOCKSUM', 'CLOCKSUM', '', '', '' }
     local idx = 0
     vim.fn.input = function()
       idx = idx + 1
@@ -589,7 +722,7 @@ describe('ColumnView', function()
     view.current_col = 1
 
     local original_input = vim.fn.input
-    local responses = { 'Status', '', '12', '+' }
+    local responses = { 'Status', '', '12', '+', '' }
     local idx = 0
     vim.fn.input = function()
       idx = idx + 1

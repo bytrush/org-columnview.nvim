@@ -86,7 +86,8 @@ While the column view is open, these buffer local mappings are available: >
     q             Quit the column view
     v             View the full value of the current cell
     a             Edit the allowed values of the current column
-    < / >         Narrow / widen the current column
+    < / >         Narrow / widen the current column (a count prefix
+                  adjusts by N)
     S-M-Right     Insert a column
     S-M-Left      Delete a column
     M-Left        Move the current column left

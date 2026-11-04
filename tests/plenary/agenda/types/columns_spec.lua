@@ -569,6 +569,10 @@ describe('Agenda Columns Type', function()
     view.current_row = 1
     view.current_col = column_index(view, 'ITEM')
 
+    local original_confirm = vim.fn.confirm
+    vim.fn.confirm = function()
+      return 1
+    end
     assert.has_no.errors(function()
       view:narrow_column()
       view:widen_column()
@@ -576,6 +580,7 @@ describe('Agenda Columns Type', function()
       view:move_column_right()
       view:delete_column()
     end)
+    vim.fn.confirm = original_confirm
 
     assert.is_false(vim.bo[view.bufnr].modifiable)
   end)
@@ -587,7 +592,7 @@ describe('Agenda Columns Type', function()
     view.current_col = column_index(view, 'TODO')
 
     local original_input = vim.fn.input
-    local responses = { 'Owner', '' }
+    local responses = { 'Owner', '', '', '', '' }
     local idx = 0
     vim.fn.input = function()
       idx = idx + 1
@@ -611,6 +616,10 @@ describe('Agenda Columns Type', function()
     assert.are.equal(9, view.columns[view.current_col].width)
     view:widen_column()
     assert.are.equal(10, view.columns[view.current_col].width)
+    view:widen_column(3)
+    assert.are.equal(13, view.columns[view.current_col].width)
+    view:narrow_column(5)
+    assert.are.equal(8, view.columns[view.current_col].width)
   end)
 
   it('inserts a column before the current one and keeps it across renders', function()
@@ -619,7 +628,7 @@ describe('Agenda Columns Type', function()
     view.current_col = column_index(view, 'TODO')
 
     local original_input = vim.fn.input
-    local responses = { 'Owner', '12' }
+    local responses = { 'Owner', '', '12', '', '' }
     local idx = 0
     vim.fn.input = function()
       idx = idx + 1
@@ -641,7 +650,7 @@ describe('Agenda Columns Type', function()
     view.current_col = column_index(view, 'TODO')
 
     local original_input = vim.fn.input
-    local responses = { 'Owner', 'Owner?', '12', '+' }
+    local responses = { 'Owner', 'Owner?', '12', '+', '%.2f' }
     local idx = 0
     vim.fn.input = function()
       idx = idx + 1
@@ -654,6 +663,7 @@ describe('Agenda Columns Type', function()
     assert.are.equal('Owner?', view.columns[view.current_col].title)
     assert.are.equal(12, view.columns[view.current_col].width)
     assert.are.equal('+', view.columns[view.current_col].summary_type)
+    assert.are.equal('%.2f', view.columns[view.current_col].format)
 
     view:render(view.bufnr)
     assert.are.equal('OWNER', view.columns[view.current_col].name)
@@ -672,7 +682,18 @@ describe('Agenda Columns Type', function()
     view.current_row = 1
     view.current_col = column_index(view, 'TODO')
 
+    local original_confirm = vim.fn.confirm
+    vim.fn.confirm = function()
+      return 2
+    end
     view:delete_column()
+    assert.is_not_nil(column_index(view, 'TODO'))
+
+    vim.fn.confirm = function()
+      return 1
+    end
+    view:delete_column()
+    vim.fn.confirm = original_confirm
 
     assert.is_nil(column_index(view, 'TODO'))
     assert.is_not_nil(column_index(view, 'ITEM'))

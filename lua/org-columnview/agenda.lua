@@ -8,6 +8,7 @@ local AgendaFilter = require('orgmode.agenda.filter')
 local Files = require('orgmode.files')
 local Parser = require('org-columnview.parser')
 local Cells = require('org-columnview.cells')
+local Summary = require('org-columnview.summary')
 local SortingStrategy = require('orgmode.agenda.sorting_strategy')
 local Promise = require('orgmode.utils.promise')
 local utils = require('orgmode.utils')
@@ -1221,46 +1222,67 @@ function OrgAgendaColumnsType:edit_allowed()
   utils.echo_info(('Allowed values for %s: %s'):format(col.name, table.concat(new_allowed, ', ')))
 end
 
-function OrgAgendaColumnsType:narrow_column()
+---Property names used as completion in the column editor.
+---@private
+---@return string[]
+function OrgAgendaColumnsType:_property_keys()
+  local headline = self:_current_headline()
+  if not headline then
+    return Parser.get_special_columns()
+  end
+  return Parser.get_property_keys(headline.file)
+end
+
+---@param amount? number
+function OrgAgendaColumnsType:narrow_column(amount)
   local col = self:_current_column()
   if not col then
     return
   end
+  amount = amount or 1
   local width = col.width or (self._widths and self._widths[self.current_col]) or 10
-  if width > 5 then
-    col.width = width - 1
+  local new_width = math.max(width - amount, 1)
+  if new_width ~= width then
+    col.width = new_width
     self._columns_dirty = true
     self._widths = nil
     self:render(self.bufnr)
   end
 end
 
-function OrgAgendaColumnsType:widen_column()
+---@param amount? number
+function OrgAgendaColumnsType:widen_column(amount)
   local col = self:_current_column()
   if not col then
     return
   end
+  amount = amount or 1
   local width = col.width or (self._widths and self._widths[self.current_col]) or 10
-  col.width = math.min(width + 1, 50)
+  col.width = math.min(width + amount, 50)
   self._columns_dirty = true
   self._widths = nil
   self:render(self.bufnr)
 end
 
 function OrgAgendaColumnsType:insert_column()
-  local name = vim.fn.input('Column name: ')
+  local name = compat.input_with_completion('Property: ', '', self:_property_keys())
   if not name or vim.trim(name) == '' then
     return
   end
+  name = vim.trim(name):upper()
 
-  local width = tonumber(vim.fn.input('Width (optional): '))
+  local title = vim.trim(vim.fn.input(('Column title [%s]: '):format(name), '') or '')
+  local width_input = vim.fn.input('Column width: ', '') or ''
+  local summary = vim.trim(compat.input_with_completion('Summary: ', '', Summary.get_summary_types()) or '')
+  local format = vim.trim(vim.fn.input('Format: ', '') or '')
 
   local new_col = {
-    name = name:upper(),
-    width = width,
-    title = name,
-    summary_type = nil,
-    is_special = false,
+    name = name,
+    width = tonumber(width_input),
+    title = title ~= '' and title or name,
+    summary_type = summary ~= '' and summary or nil,
+    format = format ~= '' and format or nil,
+    is_special = Parser.is_special_column(name),
   }
 
   table.insert(self.columns, self.current_col, new_col)
@@ -1271,6 +1293,14 @@ end
 
 function OrgAgendaColumnsType:delete_column()
   if #self.columns <= 1 then
+    return
+  end
+  local col = self.columns[self.current_col]
+  if not col then
+    return
+  end
+  local choice = vim.fn.confirm(('Are you sure you want to remove column "%s"?'):format(col.title or col.name), '&Yes\n&No', 2)
+  if choice ~= 1 then
     return
   end
   table.remove(self.columns, self.current_col)
@@ -1304,27 +1334,30 @@ function OrgAgendaColumnsType:move_column_right()
   end
 end
 
----Edit the property, title, width and summary type of the current column.
+---Edit the property, title, width, summary type and format of the current
+---column, like Emacs' `org-columns-edit-attributes`.
 function OrgAgendaColumnsType:edit_attributes()
   local col = self:_current_column()
   if not col then
     return
   end
 
-  local name = vim.fn.input('Column name: ', col.name)
+  local name = compat.input_with_completion('Property: ', col.name, self:_property_keys())
   if not name or vim.trim(name) == '' then
     return
   end
   name = vim.trim(name):upper()
 
-  local title = vim.trim(vim.fn.input('Column title: ', col.title or '') or '')
-  local width_input = vim.fn.input('Width (optional): ', col.width and tostring(col.width) or '') or ''
-  local summary = vim.trim(vim.fn.input('Summary type (optional): ', col.summary_type or '') or '')
+  local title = vim.trim(vim.fn.input(('Column title [%s]: '):format(name), col.title or '') or '')
+  local width_input = vim.fn.input('Column width: ', col.width and tostring(col.width) or '') or ''
+  local summary = vim.trim(compat.input_with_completion('Summary: ', col.summary_type or '', Summary.get_summary_types()) or '')
+  local format = vim.trim(vim.fn.input('Format: ', col.format or '') or '')
 
   col.name = name
   col.title = title ~= '' and title or name
   col.width = tonumber(width_input)
   col.summary_type = summary ~= '' and summary or nil
+  col.format = format ~= '' and format or nil
   col.is_special = Parser.is_special_column(name)
 
   self._columns_dirty = true
@@ -1372,6 +1405,10 @@ function OrgAgendaColumnsType:_setup_mappings()
               return
             end
             self:_sync_cursor()
+            if name == 'narrow_column' or name == 'widen_column' then
+              -- A count prefix adjusts the width by that many characters.
+              return self[name](self, math.max(vim.v.count, 1))
+            end
             return self[name](self)
           end, {
             buffer = self.bufnr,

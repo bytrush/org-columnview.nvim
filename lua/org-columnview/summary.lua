@@ -37,6 +37,18 @@ function Summary.get_summary_function(summary_type)
   return SUMMARY_TYPES[summary_type]
 end
 
+---Summary operator names, for completion in the column editor.
+---@return string[]
+function Summary.get_summary_types()
+  local types = {}
+  for name in pairs(SUMMARY_TYPES) do
+    table.insert(types, name)
+  end
+  table.insert(types, '$')
+  table.sort(types)
+  return types
+end
+
 ---@param values string[]
 ---@param summary_type string
 ---@param format? string

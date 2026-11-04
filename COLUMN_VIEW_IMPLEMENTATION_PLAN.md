@@ -486,10 +486,10 @@ Parity plan (revisit with 7.1.4):
 |---|------|-----------------|-------------------|--------|
 | 7.5.1 | View scope | scoped to the ancestor that owns the `COLUMNS` property | the view starts at the headline that owns `COLUMNS`, falling back to the cursor's headline (`parser.lua:303`, `init.lua:53`) | [DONE] |
 | 7.5.2 | Header rendering | `header-line-format` with `\|` separators, scrolls horizontally with the window | winbar with `│` borders, no hscroll sync (`init.lua:373`) | [DROPPED] (winbar is the Neovim equivalent) |
-| 7.5.3 | `narrow`/`widen` | accept a prefix argument (width ± N) | fixed ±1, `view.lua:1150`, `view.lua:1169` | [TODO] |
-| 7.5.4 | `delete_column` | asks for confirmation (`y-or-n-p`) | deletes without confirmation, `view.lua:1240` | [TODO] |
-| 7.5.5 | `insert_column` (`org-columns-new`) | prompts for Property (with completion from buffer property keys), Title, Width, Summary (with completion) and Format | prompts only for name and width, `view.lua:1186` | [TODO] |
-| 7.5.6 | `edit_attributes` | same prompt set as `org-columns-new` | prompts name/title/width/summary, no completion and no format part, `view.lua:1209` | [TODO] |
+| 7.5.3 | `narrow`/`widen` | accept a prefix argument (width ± N) | a count prefix adjusts the width by N, down to 1 (`view.lua:1270`, `mappings.lua:107`) | [DONE] |
+| 7.5.4 | `delete_column` | asks for confirmation (`y-or-n-p`) | asks for confirmation with No as the default (`view.lua:1371`) | [DONE] |
+| 7.5.5 | `insert_column` (`org-columns-new`) | prompts for Property (with completion from buffer property keys), Title, Width, Summary (with completion) and Format | prompts the same fields, with property and summary completion (`view.lua:1310`, `parser.lua:44`, `summary.lua:42`) | [DONE] |
+| 7.5.6 | `edit_attributes` | same prompt set as `org-columns-new` | prompts the same fields and persists the format (`view.lua:1338`) | [DONE] |
 | 7.5.7 | `content`/`overview` | `org-cycle-content` / `org-cycle-overview` (toggle) | implemented with folding, `view.lua:642`, `view.lua:650` | [DROPPED] |
 | 7.5.8 | Agenda column view | overlays the existing agenda buffer | separate agenda type `type = 'columns'` | [DROPPED] |
 | 7.5.9 | `ITEM` column | level stars (`* `), omitted in the agenda | indentation by two spaces per level | [DROPPED] |
@@ -504,7 +504,7 @@ Ordered by value per effort; update the checkbox when an item ships.
 - [x] 7.3.1 per-column format `FMT`
 - [x] 7.4.1, 7.4.2 summary semantics
 - [x] 7.1.11 global column view, 7.5.1 view scope
-- [ ] 7.5.3–7.5.6 column editing polish
+- [x] 7.5.3–7.5.6 column editing polish
 - [ ] 7.1.4, 7.1.5 config hooks
 - [ ] 7.3.2 Emacs-compatible format grammar (re-validate alongside 7.1.4)
 - [ ] 7.1.1, 7.1.2 `BEGIN_COLUMNVIEW` block

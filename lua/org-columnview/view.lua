@@ -1255,7 +1255,19 @@ function ColumnView:toggle_or_quit()
   self:quit()
 end
 
-function ColumnView:narrow_column()
+---Property names used as completion in the column editor.
+---@private
+---@return string[]
+function ColumnView:_property_keys()
+  local file = self.file or (self.headlines[1] and self.headlines[1].file)
+  if not file then
+    return Parser.get_special_columns()
+  end
+  return Parser.get_property_keys(file)
+end
+
+---@param amount? number
+function ColumnView:narrow_column(amount)
   local row = self.rows[self.current_row]
   if not row then
     return
@@ -1265,16 +1277,19 @@ function ColumnView:narrow_column()
     return
   end
 
+  amount = amount or 1
   local col = cell.column
   local width = col.width or self:_get_width(self.current_col)
-  if width > 5 then
-    col.width = width - 1
+  local new_width = math.max(width - amount, 1)
+  if new_width ~= width then
+    col.width = new_width
     self._widths = nil
     self:_after_columns_changed()
   end
 end
 
-function ColumnView:widen_column()
+---@param amount? number
+function ColumnView:widen_column(amount)
   local row = self.rows[self.current_row]
   if not row then
     return
@@ -1284,36 +1299,42 @@ function ColumnView:widen_column()
     return
   end
 
+  amount = amount or 1
   local col = cell.column
   local width = col.width or self:_get_width(self.current_col)
-  col.width = math.min(width + 1, 50)
+  col.width = math.min(width + amount, 50)
   self._widths = nil
   self:_after_columns_changed()
 end
 
 function ColumnView:insert_column()
-  local name = vim.fn.input('Column name: ')
+  local name = compat.input_with_completion('Property: ', '', self:_property_keys())
   if not name or vim.trim(name) == '' then
     return
   end
+  name = vim.trim(name):upper()
 
-  local width_input = vim.fn.input('Width (optional): ')
-  local width = tonumber(width_input)
+  local title = vim.trim(vim.fn.input(('Column title [%s]: '):format(name), '') or '')
+  local width_input = vim.fn.input('Column width: ', '') or ''
+  local summary = vim.trim(compat.input_with_completion('Summary: ', '', Summary.get_summary_types()) or '')
+  local format = vim.trim(vim.fn.input('Format: ', '') or '')
 
   local new_col = {
-    name = name:upper(),
-    width = width,
-    title = name,
-    summary_type = nil,
+    name = name,
+    width = tonumber(width_input),
+    title = title ~= '' and title or name,
+    summary_type = summary ~= '' and summary or nil,
+    format = format ~= '' and format or nil,
     allowed_values = nil,
-    is_special = false,
+    is_special = Parser.is_special_column(name),
   }
 
   table.insert(self.columns, self.current_col, new_col)
   self:_after_columns_changed()
 end
 
----Edit the property, title, width and summary type of the current column.
+---Edit the property, title, width, summary type and format of the current
+---column, like Emacs' `org-columns-edit-attributes`.
 function ColumnView:edit_attributes()
   local row = self.rows[self.current_row]
   if not row then
@@ -1325,20 +1346,22 @@ function ColumnView:edit_attributes()
   end
   local col = cell.column
 
-  local name = vim.fn.input('Column name: ', col.name)
+  local name = compat.input_with_completion('Property: ', col.name, self:_property_keys())
   if not name or vim.trim(name) == '' then
     return
   end
   name = vim.trim(name):upper()
 
-  local title = vim.trim(vim.fn.input('Column title: ', col.title or '') or '')
-  local width_input = vim.fn.input('Width (optional): ', col.width and tostring(col.width) or '') or ''
-  local summary = vim.trim(vim.fn.input('Summary type (optional): ', col.summary_type or '') or '')
+  local title = vim.trim(vim.fn.input(('Column title [%s]: '):format(name), col.title or '') or '')
+  local width_input = vim.fn.input('Column width: ', col.width and tostring(col.width) or '') or ''
+  local summary = vim.trim(compat.input_with_completion('Summary: ', col.summary_type or '', Summary.get_summary_types()) or '')
+  local format = vim.trim(vim.fn.input('Format: ', col.format or '') or '')
 
   col.name = name
   col.title = title ~= '' and title or name
   col.width = tonumber(width_input)
   col.summary_type = summary ~= '' and summary or nil
+  col.format = format ~= '' and format or nil
   col.is_special = Parser.is_special_column(name)
 
   self._widths = nil
@@ -1347,6 +1370,14 @@ end
 
 function ColumnView:delete_column()
   if #self.columns <= 1 then
+    return
+  end
+  local col = self.columns[self.current_col]
+  if not col then
+    return
+  end
+  local choice = vim.fn.confirm(('Are you sure you want to remove column "%s"?'):format(col.title or col.name), '&Yes\n&No', 2)
+  if choice ~= 1 then
     return
   end
   table.remove(self.columns, self.current_col)

@@ -82,7 +82,7 @@ While the column view is active, these buffer local mappings are available:
 | `q` | quit the column view |
 | `v` | view the full value of the current cell |
 | `a` | edit the allowed values of the current column |
-| `<` / `>` | narrow / widen the current column |
+| `<` / `>` | narrow / widen the current column (a count prefix adjusts by N) |
 | `S-M-Right` / `S-M-Left` | insert / delete a column |
 | `M-Left` / `M-Right` | move the current column left / right |
 | `M-Up` / `M-Down` | move the current row up / down |

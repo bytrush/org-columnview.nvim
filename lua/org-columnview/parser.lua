@@ -29,6 +29,53 @@ function Parser.is_special_column(name)
   return name ~= nil and SPECIAL_COLUMNS[name:upper()] == true
 end
 
+---Names of the special columns, sorted alphabetically.
+---@return string[]
+function Parser.get_special_columns()
+  local names = vim.tbl_keys(SPECIAL_COLUMNS)
+  table.sort(names)
+  return names
+end
+
+---Property names used in a file, plus the special column names. Mirrors Emacs'
+---`org-buffer-property-keys`, used as completion for the column editor.
+---@param file OrgFile
+---@return string[]
+function Parser.get_property_keys(file)
+  local seen = {}
+  local names = {}
+  local function add(name)
+    if not name then
+      return
+    end
+    name = name:upper()
+    if name ~= '' and not seen[name] then
+      seen[name] = true
+      table.insert(names, name)
+    end
+  end
+
+  for _, headline in ipairs(file:get_headlines()) do
+    for name in pairs(headline:get_own_properties()) do
+      add(name)
+    end
+  end
+
+  local directives = file:_get_directive('property', true)
+  if type(directives) == 'table' then
+    for _, directive in ipairs(directives) do
+      add(directive:match('^(%S+)'))
+    end
+  end
+
+  for _, name in ipairs(Parser.get_special_columns()) do
+    add(name)
+  end
+
+  table.sort(names)
+  return names
+end
+
 ---Serialize parsed columns back into a column format string, mirroring Emacs'
 ---`org-columns-uncompile-format`. The title is omitted when it matches the
 ---property name, and allowed values are kept as a trailing brace so they

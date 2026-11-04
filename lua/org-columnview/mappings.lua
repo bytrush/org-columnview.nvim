@@ -26,8 +26,8 @@ M.descriptions = {
   edit_allowed = 'Edit the allowed values of the current column',
   edit_value = 'Edit the value at point',
   toggle_or_quit = 'Toggle the checkbox at point, or quit the column view',
-  narrow_column = 'Make the current column narrower',
-  widen_column = 'Make the current column wider',
+  narrow_column = 'Make the current column narrower (count prefix for N)',
+  widen_column = 'Make the current column wider (count prefix for N)',
   insert_column = 'Insert a new column',
   delete_column = 'Delete the current column',
   move_column_left = 'Move the current column left',
@@ -104,7 +104,12 @@ function M.setup_view_mappings(view, bufnr)
         table.insert(attached, key)
         vim.keymap.set('n', key, function()
           if view[mapping.name] then
-            view[mapping.name](view)
+            if mapping.name == 'narrow_column' or mapping.name == 'widen_column' then
+              -- A count prefix adjusts the width by that many characters.
+              view[mapping.name](view, math.max(vim.v.count, 1))
+            else
+              view[mapping.name](view)
+            end
           end
         end, {
           buffer = bufnr,
