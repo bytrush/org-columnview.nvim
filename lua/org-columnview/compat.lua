@@ -180,6 +180,29 @@ function M.set_file_columns(file, format)
   vim.api.nvim_buf_set_lines(bufnr, insert_at, insert_at, false, { '#+COLUMNS: ' .. format })
 end
 
+---Write a file level keyword property, like `#+PROPERTY: NAME VALUE`.
+---@param file OrgFile
+---@param name string
+---@param value string
+function M.set_keyword_property(file, name, value)
+  local bufnr = file:get_valid_bufnr()
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local first_headline
+  for i, line in ipairs(lines) do
+    if not first_headline and line:match('^%*+ ') then
+      first_headline = i
+    end
+    local prefix, property_name = line:match('^(%s*#%+[Pp][Rr][Oo][Pp][Ee][Rr][Tt][Yy]:%s*)(%S+)')
+    if prefix and property_name and property_name:upper() == name:upper() then
+      vim.api.nvim_buf_set_lines(bufnr, i - 1, i, false, { prefix .. name .. ' ' .. value })
+      return
+    end
+  end
+
+  local insert_at = (first_headline or 1) - 1
+  vim.api.nvim_buf_set_lines(bufnr, insert_at, insert_at, false, { '#+PROPERTY: ' .. name .. ' ' .. value })
+end
+
 ---Extract the first Org link from a string, mirroring the bracketed and plain
 ---forms accepted by Emacs' `org-link-open-from-string`.
 ---@param text string|nil

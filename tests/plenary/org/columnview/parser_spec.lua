@@ -162,11 +162,18 @@ describe('Column Parser', function()
       { name = 'TOTAL', width = 10, title = 'Total', summary_type = '+', format = '%.2f' },
       { name = 'OWNER', width = 12, title = 'Owner?', allowed_values = { 'Owner_ALL' } },
     }
-    assert.are.equal('%25ITEM %10EFFORT{:} %10TOTAL{+;%.2f} %12OWNER(Owner?){Owner_ALL}', Parser.unparse(columns))
+    assert.are.equal('%25ITEM %10EFFORT{:} %10TOTAL{+;%.2f} %12OWNER(Owner?)', Parser.unparse(columns))
   end)
 
-  it('round trips a format string through parse and unparse', function()
-    local format = '%25ITEM %10EFFORT{:} %10TOTAL{+;%.2f} %12OWNER(Owner?){Owner_ALL}'
+  it('drops allowed values from the serialized format', function()
+    local columns = {
+      { name = 'OWNER', title = 'Owner', allowed_values = { 'Alice', 'Bob' } },
+    }
+    assert.are.equal('%OWNER', Parser.unparse(columns))
+  end)
+
+  it('round trips a portable format string through parse and unparse', function()
+    local format = '%25ITEM %10EFFORT{:} %10TOTAL{+;%.2f} %12OWNER(Owner?)'
     assert.are.equal(format, Parser.unparse(Parser.parse(format).columns))
   end)
 end)

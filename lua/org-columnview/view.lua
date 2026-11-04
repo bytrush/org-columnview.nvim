@@ -559,8 +559,38 @@ function ColumnView:_store_format()
   if not self.file then
     return
   end
-  local format = Parser.unparse(self.columns)
+
+  ---Whether the allowed values are a `{PROPERTY_ALL}` reference rather than
+  ---inline values.
+  ---@param values string[]
+  ---@return boolean
+  local function is_reference(values)
+    return #values == 1
+      and not values[1]:match('^%[')
+      and not values[1]:find(',', 1, true)
+      and values[1]:match('_[Aa][Ll][Ll]$') ~= nil
+  end
+
   self:_write(function()
+    -- Inline allowed values are a legacy extension. Move them into the
+    -- portable `PROPERTY_ALL` property before writing the format, so that
+    -- Emacs sees the same columns.
+    for _, col in ipairs(self.columns) do
+      local values = col.allowed_values
+      if values and #values > 0 then
+        if not is_reference(values) then
+          local value = table.concat(values, ',')
+          if self.subtree and self.headlines[1] then
+            self.headlines[1]:set_property(col.name .. '_ALL', value)
+          else
+            compat.set_keyword_property(self.file, col.name .. '_ALL', value)
+          end
+        end
+        col.allowed_values = nil
+      end
+    end
+
+    local format = Parser.unparse(self.columns)
     if self.subtree and self.headlines[1] and self.headlines[1]:get_property('COLUMNS', false) then
       self.headlines[1]:set_property('COLUMNS', format)
       return
@@ -1036,11 +1066,12 @@ function ColumnView:edit_allowed()
   end
 
   self.allowed_values[prop_name] = new_allowed
+  cell.column.allowed_values = nil
 
   self:_write(function()
     target:set_property(prop_name, table.concat(new_allowed, ','))
   end)
-
+  self:_store_format()
   self:refresh()
   utils.echo_info(('Allowed values for %s: %s'):format(col.name, table.concat(new_allowed, ', ')))
 end

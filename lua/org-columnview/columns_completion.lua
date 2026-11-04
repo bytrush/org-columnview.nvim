@@ -5,6 +5,8 @@
 ---@field private keyword_pattern vim.regex
 ---@field private property_pattern vim.regex
 ---@field private completion OrgCompletion
+local Summary = require('org-columnview.summary')
+
 local Completion = {}
 Completion.__index = Completion
 
@@ -27,25 +29,7 @@ local COLUMN_KEYWORDS = {
   '%TIMESTAMP_IA',
 }
 
-local SUMMARY_TYPES = {
-  '+',
-  ':',
-  ':min',
-  ':max',
-  ':mean',
-  '$',
-  'min',
-  'max',
-  'mean',
-  'X',
-  'X/',
-  'X%',
-  '@min',
-  '@max',
-  '@mean',
-  'est+',
-  '+;%.2f',
-}
+
 
 function Completion:new(opts)
   return setmetatable({
@@ -144,7 +128,9 @@ function Completion:get_results(context)
   local name = base:match('^([^{]*){$')
   if name then
     local results = {}
-    for _, summary_type in ipairs(SUMMARY_TYPES) do
+    local summary_types = Summary.get_summary_types()
+    table.insert(summary_types, '+;%.2f')
+    for _, summary_type in ipairs(summary_types) do
       table.insert(results, name .. '{' .. summary_type .. '}')
     end
     return results

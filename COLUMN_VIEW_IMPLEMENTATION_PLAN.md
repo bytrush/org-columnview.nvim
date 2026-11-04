@@ -404,7 +404,7 @@ parity nice-to-haves.
 | # | Item | Emacs behaviour | Current behaviour | Status |
 |---|------|-----------------|-------------------|--------|
 | 7.3.1 | Per-column format `FMT` (`{op;fmt}`) | `+`, `min`, `max`, `mean` honour it; any column with a format renders `(format fmt (string-to-number value))` | `+`, `min`, `max` and `mean` honour `;FMT`; the format is also applied to displayed cell values (`parser.lua:227`, `summary.lua:43`, `cells.lua:277`) | [DONE] |
-| 7.3.2 | Format grammar | one brace group `{OPERATOR}`; allowed values live only in the `PROPERTY_ALL` property (e.g. `OWNER_ALL`) | implicit `PROPERTY_ALL` lookup now works; allowed values can still be inline in braces or referenced with `{NAME_ALL}` (`parser.lua:218-241`), so the same syntax means different things in Emacs | [TODO] (re-validate with 7.1.4; see notes below) |
+| 7.3.2 | Format grammar | one brace group `{OPERATOR}`; allowed values live only in the `PROPERTY_ALL` property (e.g. `OWNER_ALL`) | implicit `PROPERTY_ALL` lookup and registered operators work; legacy inline braces are read but no longer written, and are migrated to `PROPERTY_ALL` on the next format change (`parser.lua:86`, `summary.lua:81`, `view.lua:558`) | [DONE] |
 | 7.3.3 | `%%` escaping, `!` no-summary, `+`/`-`/`:` prefixes | not in Org 9.8 | not implemented | [N/A] |
 
 #### 7.3.2 Notes: format grammar compatibility
@@ -441,24 +441,24 @@ Plugin grammar (`parser.lua:218-241`):
 - `%OWNER{Alice,Bob}` - inline allowed values
 - `%OWNER{+}{Alice,Bob}` - summary plus inline allowed values
 
-`Parser.unparse` (`parser.lua:52-53`) writes allowed values back as braces, so
-any column edit makes the divergence persistent on disk.
+`Parser.unparse` (`parser.lua:86`) never writes allowed values. The view moves
+legacy inline values into `PROPERTY_ALL` before storing the format, so column
+edits produce Emacs-compatible `COLUMNS` definitions.
 
 | Spec | Emacs | Plugin |
 |---|---|---|
 | `%OWNER` | allowed values from `OWNER_ALL` | allowed values from `OWNER_ALL` (implicit lookup) |
 | `%OWNER{OWNER_ALL}` | summary operator `OWNER_ALL` (unknown unless registered) | allowed-values reference |
-| `%OWNER{Alice,Bob}` | summary operator `Alice,Bob` (unknown) | inline allowed values |
-| `%OWNER{+}{Alice,Bob}` | summary `+`; the second brace is ignored | summary `+` and inline allowed values |
+| `%OWNER{Alice,Bob}` | summary operator `Alice,Bob` (unknown) | legacy inline allowed values, migrated on write |
+| `%OWNER{+}{Alice,Bob}` | summary `+`; the second brace is ignored | summary `+` with legacy inline values |
 
 Consequences:
 
-- A format written by the plugin with inline values is invalid in Emacs; an
-  unknown operator fails when Emacs computes the summary.
-- `%OWNER{+}{Alice,Bob}` loses the allowed values in Emacs.
-- `%OWNER{OWNER_ALL}` and `%OWNER{Alice,Bob}` are still not portable.
-- Until 7.1.4 exists, the plugin treats any unknown brace as allowed values,
-  so an Emacs custom summary operator is misread.
+- Legacy `%OWNER{Alice,Bob}` and `%OWNER{OWNER_ALL}` are not portable; they
+  are converted to `PROPERTY_ALL` when the format is next written.
+- `%OWNER{+}{Alice,Bob}` loses the allowed values in Emacs until migrated.
+- Unknown braces are still read as legacy allowed values when no built-in or
+  registered operator matches.
 
 Parity plan (revisit with 7.1.4):
 
@@ -466,11 +466,10 @@ Parity plan (revisit with 7.1.4):
    matching Emacs.
 2. [DONE] Treat `{X}` as a summary operator only when `X` is built-in or
    registered; otherwise treat it as allowed values.
-3. Decide whether inline values stay as an opt-in extension or are written in
-   the portable form (`{SUMMARY}` plus `PROPERTY_ALL`); warn before writing
-   inline values if the portable form is the default.
-4. Document in the README that inline allowed values are not understood by
-   Emacs.
+3. [DONE] The portable form (`{OPERATOR}` plus `PROPERTY_ALL`) is the default;
+   inline values remain readable as a legacy extension and are migrated on
+   write.
+4. [DONE] README documents that inline allowed values are not portable.
 
 ### 7.4 Summary semantics gaps
 
@@ -506,7 +505,7 @@ Ordered by value per effort; update the checkbox when an item ships.
 - [x] 7.1.11 global column view, 7.5.1 view scope
 - [x] 7.5.3–7.5.6 column editing polish
 - [x] 7.1.4, 7.1.5 config hooks
-- [ ] 7.3.2 Emacs-compatible format grammar (re-validate alongside 7.1.4)
+- [x] 7.3.2 Emacs-compatible format grammar (re-validate alongside 7.1.4)
 - [ ] 7.1.1, 7.1.2 `BEGIN_COLUMNVIEW` block
 - [ ] 7.1.6–7.1.9 agenda parity
 - [ ] 7.1.3, 7.4.3 summary write-back

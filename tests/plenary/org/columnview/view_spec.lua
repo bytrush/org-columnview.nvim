@@ -707,7 +707,42 @@ describe('ColumnView', function()
     view:widen_column()
 
     local headline = file:get_headlines()[1]
-    assert.are.equal('%11OWNER{Owner_ALL}', headline:get_property('COLUMNS', false))
+    assert.are.equal('%11OWNER', headline:get_property('COLUMNS', false))
+    assert.are.equal('Alice, Bob', headline:get_property('OWNER_ALL', false))
+  end)
+
+  it('migrates inline allowed values into PROPERTY_ALL', function()
+    local view, file = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %10Owner{Alice,Bob}',
+      ':Owner: Alice',
+      ':END:',
+    })
+
+    view.current_row = 1
+    view.current_col = 1
+    view:widen_column()
+
+    local headline = file:get_headlines()[1]
+    assert.are.equal('%11OWNER', headline:get_property('COLUMNS', false))
+    assert.are.equal('Alice,Bob', headline:get_property('OWNER_ALL', false))
+  end)
+
+  it('migrates file-level inline allowed values into a PROPERTY keyword', function()
+    local view, file = create_file_view({
+      '#+COLUMNS: %10Owner{Alice,Bob}',
+      '',
+      '* First',
+    })
+
+    view.current_row = 1
+    view.current_col = 1
+    view:widen_column()
+
+    local compat = require('org-columnview.compat')
+    assert.are.equal('%11OWNER', compat.get_file_columns(file))
+    assert.are.equal('Alice,Bob', compat.get_keyword_property(file, 'OWNER_ALL'))
   end)
 
   it('persists edited attributes to headline COLUMNS property', function()

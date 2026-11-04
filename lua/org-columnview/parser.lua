@@ -101,9 +101,8 @@ function Parser.unparse(columns)
       end
       spec = spec .. '}'
     end
-    if col.allowed_values and #col.allowed_values > 0 then
-      spec = spec .. '{' .. table.concat(col.allowed_values, ',') .. '}'
-    end
+    -- Allowed values are stored in `PROPERTY_ALL`, not in the format. The
+    -- view migrates legacy inline values before calling this function.
     table.insert(specs, spec)
   end
   return table.concat(specs, ' ')

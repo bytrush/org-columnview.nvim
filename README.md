@@ -98,18 +98,23 @@ While the column view is active, these buffer local mappings are available:
 A column format is a space separated list of column specifications:
 
 ```
-%[width]PROPERTY[(Title)][{summary}][{allowed values}]
+%[width]PROPERTY[(Title)][{summary}]
 ```
 
 - `width` - column width in characters (optional)
 - `PROPERTY` - any property name, or one of the special column names below
 - `(Title)` - display title (optional, defaults to the property name)
-- `{summary}` - summary type used for entries with children (optional)
-- `{allowed values}` - comma separated list (whitespace separated when there is
-  no comma), or `{NAME_ALL}` to reference the `NAME_ALL` property (optional).
-  A plain column without braces also reads `NAME_ALL`, matching Emacs. The
-  property is looked up on the entry and its ancestors, and finally file-wide
-  via `#+PROPERTY: NAME_ALL ...` or `#+NAME_ALL: ...`
+- `{summary}` - summary operator used for entries with children, optionally
+  followed by `;FMT` (optional)
+
+Allowed values are read from the `PROPERTY_ALL` property, matching Emacs. The
+property is looked up on the entry and its ancestors, and finally file-wide via
+`#+PROPERTY: PROPERTY_ALL ...` or `#+PROPERTY_ALL: ...`.
+
+Legacy formats may still contain a second brace group with inline values or a
+`{NAME_ALL}` reference. The plugin reads it for backwards compatibility, but
+writes the values to `PROPERTY_ALL` and drops the brace on the next format
+change. Inline allowed values are not portable to Emacs.
 
 Special column names: `ITEM`, `CLOCKSUM`, `CLOCKSUM_T`, `AGE`, `TAGS`,
 `ALLTAGS`, `TODO`, `PRIORITY`, `CATEGORY`, `SCHEDULED`, `DEADLINE`, `CLOSED`,

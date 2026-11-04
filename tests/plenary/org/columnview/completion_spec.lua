@@ -176,22 +176,22 @@ describe('Column View Completion', function()
     setup_file(':COLUMNS: %Effort{')
     local result = org.completion:omnifunc(0, '%Effort{')
     assert.are.same({
+      { menu = '[Org]', word = '%Effort{$}' },
       { menu = '[Org]', word = '%Effort{+}' },
       { menu = '[Org]', word = '%Effort{:}' },
-      { menu = '[Org]', word = '%Effort{:min}' },
       { menu = '[Org]', word = '%Effort{:max}' },
       { menu = '[Org]', word = '%Effort{:mean}' },
-      { menu = '[Org]', word = '%Effort{$}' },
-      { menu = '[Org]', word = '%Effort{min}' },
-      { menu = '[Org]', word = '%Effort{max}' },
-      { menu = '[Org]', word = '%Effort{mean}' },
-      { menu = '[Org]', word = '%Effort{X}' },
-      { menu = '[Org]', word = '%Effort{X/}' },
-      { menu = '[Org]', word = '%Effort{X%}' },
-      { menu = '[Org]', word = '%Effort{@min}' },
+      { menu = '[Org]', word = '%Effort{:min}' },
       { menu = '[Org]', word = '%Effort{@max}' },
       { menu = '[Org]', word = '%Effort{@mean}' },
+      { menu = '[Org]', word = '%Effort{@min}' },
+      { menu = '[Org]', word = '%Effort{X}' },
+      { menu = '[Org]', word = '%Effort{X%}' },
+      { menu = '[Org]', word = '%Effort{X/}' },
       { menu = '[Org]', word = '%Effort{est+}' },
+      { menu = '[Org]', word = '%Effort{max}' },
+      { menu = '[Org]', word = '%Effort{mean}' },
+      { menu = '[Org]', word = '%Effort{min}' },
       { menu = '[Org]', word = '%Effort{+;%.2f}' },
     }, result)
   end)
