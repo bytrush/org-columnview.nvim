@@ -128,6 +128,56 @@ describe('ColumnView', function()
     assert.are.same({ '1', '2', '3', '5', '8' }, view.allowed_values['POINTS_ALL'])
   end)
 
+  it('resolves PROPERTY_ALL implicitly for a plain column', function()
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %25ITEM %10Owner',
+      ':Owner_ALL: Alice, Bob',
+      ':END:',
+      '** Child',
+      ':PROPERTIES:',
+      ':Owner: Alice',
+      ':END:',
+    })
+
+    assert.are.same({ 'Alice', 'Bob' }, view.allowed_values['OWNER_ALL'])
+
+    view.current_row = 2
+    view.current_col = 2
+    view:next_value()
+    assert.are.equal('Bob', view.rows[2].headline:get_property('owner'))
+  end)
+
+  it('offers implicitly resolved allowed values when editing', function()
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %25ITEM %10Owner',
+      ':Owner_ALL: Alice, Bob',
+      ':END:',
+      '** Child',
+      ':PROPERTIES:',
+      ':Owner: Alice',
+      ':END:',
+    })
+
+    view.current_row = 2
+    view.current_col = 2
+
+    local offered
+    local original_select = vim.ui.select
+    vim.ui.select = function(items, _, callback)
+      offered = items
+      callback('Bob')
+    end
+    view:edit_value()
+    vim.ui.select = original_select
+
+    assert.are.same({ '', 'Alice', 'Bob' }, offered)
+    assert.are.equal('Bob', view.rows[2].headline:get_property('owner'))
+  end)
+
   it('resolves allowed values from a file level NAME_ALL keyword', function()
     local view = create_file_view({
       '#+COLUMNS: %ITEM %TODO %5POINTS{POINTS_ALL}',

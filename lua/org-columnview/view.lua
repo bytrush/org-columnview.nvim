@@ -68,32 +68,43 @@ function ColumnView:_resolve_allowed_values()
   local resolved = {}
   for key, vals in pairs(self.allowed_values) do
     if #vals == 1 and not vals[1]:match('^%[') then
-      -- This looks like a property reference (e.g., "Owner_ALL")
-      local prop_name = vals[1]:lower()
-      local values = {}
-      for _, hl in ipairs(self.headlines) do
-        local prop_val = hl:get_property(prop_name)
-        if not prop_val or prop_val == '' then
-          -- Fall back to file-wide `#+PROPERTY: NAME_ALL ...` / `#+NAME_ALL: ...`
-          prop_val = compat.get_keyword_property(hl.file, prop_name)
-        end
-        if prop_val and prop_val ~= '' then
-          values = Parser.split_allowed_values(prop_val)
-          if #values > 0 then
-            break
-          end
-        end
-      end
-      if #values > 0 then
-        resolved[key] = values
-      else
-        resolved[key] = vals -- fallback to original
-      end
+      resolved[key] = self:_find_allowed_values(vals[1]) or vals
     else
       resolved[key] = vals
     end
   end
+
+  -- Emacs stores allowed values only in `PROPERTY_ALL`, so a plain `%OWNER`
+  -- column must pick them up without a `{OWNER_ALL}` reference.
+  for _, col in ipairs(self.columns) do
+    local key = col.name .. '_ALL'
+    if not col.is_special and not resolved[key] then
+      local values = self:_find_allowed_values(key)
+      if values then
+        resolved[key] = values
+      end
+    end
+  end
+
   self.allowed_values = resolved
+end
+
+---Find the allowed values of a property on the viewed entries, their ancestors
+---or the file-wide keywords.
+---@private
+---@param prop_name string
+---@return string[]|nil
+function ColumnView:_find_allowed_values(prop_name)
+  for _, headline in ipairs(self.headlines) do
+    local value = compat.get_inherited_property(headline, prop_name)
+    if value then
+      local values = Parser.split_allowed_values(value)
+      if #values > 0 then
+        return values
+      end
+    end
+  end
+  return nil
 end
 
 function ColumnView:_build_rows()

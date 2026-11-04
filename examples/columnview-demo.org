@@ -27,14 +27,11 @@
 # SCHEDULED/DEADLINE lines, the headline text and the properties must all be
 # valid Org syntax. The ITEM edit must not create an `ITEM` property.
 #
-# Note: the `{POINTS_ALL}` brace in the COLUMNS directive below is a plugin
-# extension (item 7.3.2 of COLUMN_VIEW_IMPLEMENTATION_PLAN.md). Emacs treats it
-# as a summary operator, so drop the brace when opening this file in Emacs. The
-# plugin then cannot cycle POINTS until 7.3.2 is implemented. Everything else
-# in the file is plain Org syntax.
+# Allowed values are read from the `POINTS_ALL` property (the `#+PROPERTY:`
+# keyword below), like Emacs does; the COLUMNS format needs no brace for it.
 
 #+TITLE: Column view demo
-#+COLUMNS: %20ITEM %6TODO %8PRIORITY %9TAGS %15SCHEDULED %15DEADLINE %9CLOCKSUM %11CLOCKSUM_T %6POINTS{POINTS_ALL} %6SCORE
+#+COLUMNS: %20ITEM %6TODO %8PRIORITY %9TAGS %15SCHEDULED %15DEADLINE %9CLOCKSUM %11CLOCKSUM_T %6POINTS %6SCORE
 #+PROPERTY: POINTS_ALL 1 3 5 8 13
 
 * TODO [#A] Prepare release  :work:release:
@@ -80,3 +77,19 @@ CLOSED: [2026-11-01 Sun 18:00]
 :POINTS: 1
 :SCORE: 0
 :END:
+* Columns view issues
+** Org mode [/]
+ :PROPERTIES:
+   :COLUMNS: %30ITEM %15EFFORT{:} %10CLOCKSUM %OWNER %STATUS %TODO %CLOSED %SCHEDULED
+   :item_all: Subtask 123
+   :STATUS_ALL: In progress,Canceled,ToDo,Done
+   :OWNER:
+   :EFFORT_ALL: 2:00,1:00,0:30,0:20,2:30,0:01,0:08,3:00
+   :OWNER_ALL: Alice,Bob
+   :CATEGORY: orgmode
+ :END:
+*** TODO M-Down expands item. And some other action doint it as well. Should it be?
+    Does not work. I am thinking that probably we do not need M-Down keybind since it's laggy.
+
+*** DONE On save Columns mode enabled
+    Details: looks like 'q' and second <prefix>xc work in different way.

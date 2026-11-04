@@ -82,6 +82,24 @@ function M.get_keyword_property(file, name)
   return nil
 end
 
+---Read a property from a headline, its ancestors, or the file-wide keywords.
+---Emacs uses this inheritance chain when it looks up `PROPERTY_ALL` for the
+---allowed values of a column.
+---@param headline OrgHeadline
+---@param name string property name, case insensitive
+---@return string|nil
+function M.get_inherited_property(headline, name)
+  local current = headline
+  while current do
+    local value = current:get_property(name)
+    if type(value) == 'string' and vim.trim(value) ~= '' then
+      return vim.trim(value)
+    end
+    current = M.get_parent_headline(current)
+  end
+  return M.get_keyword_property(headline.file, name)
+end
+
 ---Write the column format to the first `#+COLUMNS:` keyword of the file, or
 ---create one before the first headline when the file has none. Mirrors Emacs'
 ---file level branch of `org-columns-store-format`.

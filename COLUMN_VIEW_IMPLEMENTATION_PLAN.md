@@ -404,7 +404,7 @@ parity nice-to-haves.
 | # | Item | Emacs behaviour | Current behaviour | Status |
 |---|------|-----------------|-------------------|--------|
 | 7.3.1 | Per-column format `FMT` (`{op;fmt}`) | `+`, `min`, `max`, `mean` honour it; any column with a format renders `(format fmt (string-to-number value))` | only `+;fmt` is honoured (`summary.lua:30`); `min;fmt`/`max;fmt`/`mean;fmt` ignored; the format is never applied to the displayed cell value (`cells.lua:32`) | [TODO] |
-| 7.3.2 | Format grammar | one brace group `{OPERATOR}`; allowed values live only in the `PROPERTY_ALL` property (e.g. `OWNER_ALL`) | allowed values can be inline in braces or referenced with `{NAME_ALL}` (`parser.lua:218-241`), so the same syntax means different things in Emacs | [TODO] (re-validate with 7.1.4; see notes below) |
+| 7.3.2 | Format grammar | one brace group `{OPERATOR}`; allowed values live only in the `PROPERTY_ALL` property (e.g. `OWNER_ALL`) | implicit `PROPERTY_ALL` lookup now works; allowed values can still be inline in braces or referenced with `{NAME_ALL}` (`parser.lua:218-241`), so the same syntax means different things in Emacs | [TODO] (re-validate with 7.1.4; see notes below) |
 | 7.3.3 | `%%` escaping, `!` no-summary, `+`/`-`/`:` prefixes | not in Org 9.8 | not implemented | [N/A] |
 
 #### 7.3.2 Notes: format grammar compatibility
@@ -446,7 +446,7 @@ any column edit makes the divergence persistent on disk.
 
 | Spec | Emacs | Plugin |
 |---|---|---|
-| `%OWNER` | allowed values from `OWNER_ALL` | no allowed values; `n`/`p` reports an error |
+| `%OWNER` | allowed values from `OWNER_ALL` | allowed values from `OWNER_ALL` (implicit lookup) |
 | `%OWNER{OWNER_ALL}` | summary operator `OWNER_ALL` (unknown unless registered) | allowed-values reference |
 | `%OWNER{Alice,Bob}` | summary operator `Alice,Bob` (unknown) | inline allowed values |
 | `%OWNER{+}{Alice,Bob}` | summary `+`; the second brace is ignored | summary `+` and inline allowed values |
@@ -455,16 +455,15 @@ Consequences:
 
 - A format written by the plugin with inline values is invalid in Emacs; an
   unknown operator fails when Emacs computes the summary.
-- A bare Emacs `%OWNER` with an `OWNER_ALL` property does not get allowed
-  values in the plugin.
 - `%OWNER{+}{Alice,Bob}` loses the allowed values in Emacs.
+- `%OWNER{OWNER_ALL}` and `%OWNER{Alice,Bob}` are still not portable.
 - Until 7.1.4 exists, the plugin treats any unknown brace as allowed values,
   so an Emacs custom summary operator is misread.
 
 Parity plan (revisit with 7.1.4):
 
-1. Look up `PROPERTY_ALL` implicitly for columns without a brace, matching
-   Emacs.
+1. [DONE] Look up `PROPERTY_ALL` implicitly for columns without a brace,
+   matching Emacs.
 2. Treat `{X}` as a summary operator only when `X` is built-in or registered;
    otherwise treat it as allowed values.
 3. Decide whether inline values stay as an opt-in extension or are written in

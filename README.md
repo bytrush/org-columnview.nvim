@@ -104,9 +104,10 @@ A column format is a space separated list of column specifications:
 - `(Title)` - display title (optional, defaults to the property name)
 - `{summary}` - summary type used for entries with children (optional)
 - `{allowed values}` - comma separated list (whitespace separated when there is
-  no comma), or `NAME_ALL=` to reference the `NAME_ALL` property (optional).
-  A referenced `NAME_ALL` property is looked up on the entry and its ancestors,
-  and finally file-wide via `#+PROPERTY: NAME_ALL ...` or `#+NAME_ALL: ...`
+  no comma), or `{NAME_ALL}` to reference the `NAME_ALL` property (optional).
+  A plain column without braces also reads `NAME_ALL`, matching Emacs. The
+  property is looked up on the entry and its ancestors, and finally file-wide
+  via `#+PROPERTY: NAME_ALL ...` or `#+NAME_ALL: ...`
 
 Special column names: `ITEM`, `CLOCKSUM`, `CLOCKSUM_T`, `AGE`, `TAGS`,
 `ALLTAGS`, `TODO`, `PRIORITY`, `CATEGORY`, `SCHEDULED`, `DEADLINE`, `CLOSED`,

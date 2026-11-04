@@ -342,6 +342,60 @@ describe('Agenda Columns Type', function()
     assert.are.equal('Bob', updated:get_property('owner'))
   end)
 
+  it('resolves PROPERTY_ALL implicitly for a plain column', function()
+    local view = build_view({
+      '* Owner parent',
+      ':PROPERTIES:',
+      ':Owner_ALL: Alice, Bob',
+      ':END:',
+      '** Owner child',
+      ':PROPERTIES:',
+      ':Owner: Alice',
+      ':END:',
+    }, {
+      overriding_columns_format = '%25ITEM %Owner',
+    })
+
+    assert.are.same({ 'Alice', 'Bob' }, view.allowed_values['OWNER_ALL'])
+
+    view.current_row = headline_index(view, 'Owner child')
+    view.current_col = column_index(view, 'OWNER')
+    view:next_value()
+    local updated = view.headlines[headline_index(view, 'Owner child')]
+    assert.are.equal('Bob', updated:get_property('owner'))
+  end)
+
+  it('offers implicitly resolved allowed values when editing', function()
+    local view = build_view({
+      '* Owner edit parent',
+      ':PROPERTIES:',
+      ':Owner_ALL: Alice, Bob',
+      ':END:',
+      '** Owner edit child',
+      ':PROPERTIES:',
+      ':Owner: Alice',
+      ':END:',
+    }, {
+      overriding_columns_format = '%25ITEM %Owner',
+    })
+
+    view.current_row = headline_index(view, 'Owner edit child')
+    view.current_col = column_index(view, 'OWNER')
+
+    local offered
+    local original_select = vim.ui.select
+    vim.ui.select = function(items, _, callback)
+      offered = items
+      callback('Bob')
+    end
+    view:edit_value()
+    vim.ui.select = original_select
+
+    assert.are.same({ '', 'Alice', 'Bob' }, offered)
+    local updated = view.headlines[headline_index(view, 'Owner edit child')]
+    assert.are.equal('Bob', updated:get_property('owner'))
+  end)
+
   it('resolves allowed values from a file level PROPERTY keyword', function()
     local view = build_view({
       '#+PROPERTY: POINTS_ALL 1 2 3 5 8',
@@ -951,13 +1005,13 @@ describe('Agenda Columns Type', function()
     local view = build_view({
       '* Plain task',
       ':PROPERTIES:',
-      ':Points: 5',
+      ':UnsetScore: 5',
       ':END:',
     }, {
-      overriding_columns_format = '%25ITEM %Points',
+      overriding_columns_format = '%25ITEM %UnsetScore',
     })
     view.current_row = headline_index(view, 'Plain task')
-    view.current_col = column_index(view, 'Points')
+    view.current_col = column_index(view, 'UnsetScore')
 
     local utils = require('orgmode.utils')
     local original_echo = utils.echo_error
@@ -974,6 +1028,6 @@ describe('Agenda Columns Type', function()
     for _, message in ipairs(messages) do
       assert.are.equal('Allowed values for this property have not been defined', message)
     end
-    assert.are.equal('5', view.headlines[headline_index(view, 'Plain task')]:get_property('Points'))
+    assert.are.equal('5', view.headlines[headline_index(view, 'Plain task')]:get_property('UnsetScore'))
   end)
 end)
