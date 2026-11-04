@@ -1030,6 +1030,45 @@ describe('ColumnView', function()
     assert.is_nil(columnview.column_view)
   end)
 
+  it('clears the global state when the view is quit from inside', function()
+    local file = helpers.create_file({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %10ITEM %Owner',
+      ':END:',
+      '** Child',
+      ':PROPERTIES:',
+      ':Owner: Alice',
+      ':END:',
+    }, 'quit-inside.org')
+    file:reload_sync()
+    vim.api.nvim_win_set_cursor(0, { 1, 0 })
+
+    local columnview = require('org-columnview')
+    local view = columnview.org_columns()
+    assert.is_not_nil(columnview.column_view)
+
+    -- The `q` mapping calls `view:quit()` directly, not `org_columns_quit()`.
+    view:quit()
+    assert.is_nil(columnview.column_view)
+    assert.is_nil(view._autocmd_id)
+
+    -- Saving the file must not bring the closed view back.
+    vim.api.nvim_buf_call(file:bufnr(), function()
+      vim.cmd('silent write')
+    end)
+    assert.is_false(view._opened)
+
+    -- The next invocation opens the view instead of clearing stale state.
+    local reopened = columnview.org_columns()
+    assert.is_not_nil(reopened)
+    assert.is_true(reopened._opened)
+    assert.are.equal(reopened, columnview.column_view)
+
+    columnview.org_columns_quit()
+    assert.is_nil(columnview.column_view)
+  end)
+
   it('opens a whole-file view when point is before the first headline', function()
     local file = helpers.create_file({
       '#+COLUMNS: %10ITEM %Owner',
@@ -1211,6 +1250,30 @@ describe('ColumnView', function()
 
     view:quit()
     assert.are.equal('ORIGINAL_WINBAR', vim.wo[view.winid].winbar)
+  end)
+
+  it('aligns the window bar header with the sign and number columns', function()
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %10Owner %12Status',
+      ':END:',
+    })
+    local original_signcolumn = vim.wo.signcolumn
+    local original_number = vim.wo.number
+    vim.wo.signcolumn = 'yes'
+    vim.wo.number = true
+    view:open()
+
+    local textoff = vim.fn.getwininfo(view.winid)[1].textoff
+    assert.is_true(textoff > 0)
+    local winbar = vim.wo[view.winid].winbar
+    assert.are.equal(string.rep(' ', textoff), winbar:sub(1, textoff))
+    assert.is_truthy(winbar:find('Owner', 1, true))
+
+    view:quit()
+    vim.wo.signcolumn = original_signcolumn
+    vim.wo.number = original_number
   end)
 
   it('locks the buffer while the view is open and restores it on quit', function()

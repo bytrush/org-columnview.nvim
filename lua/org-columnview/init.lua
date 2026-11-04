@@ -60,13 +60,26 @@ function M.org_columns()
     return require('orgmode.utils').echo_warning('No column view definition found')
   end
 
-  local view = ColumnView:new({
+  local view
+  view = ColumnView:new({
     files = files,
     links = get_links(),
     headlines = headlines,
     subtree = headline ~= nil,
     columns_def = columns_def,
     bufnr = files:get_current_file() and files:get_current_file():bufnr() or 0,
+    -- `q` and `toggle_or_quit` call `view:quit()` directly. Clear the global
+    -- state and the refresh autocmd here too, otherwise the view stays
+    -- registered and the next `<prefix>xc` only clears the stale view.
+    on_quit = function()
+      if M.column_view == view then
+        M.column_view = nil
+      end
+      if view._autocmd_id then
+        pcall(vim.api.nvim_del_autocmd, view._autocmd_id)
+        view._autocmd_id = nil
+      end
+    end,
   })
 
   M.column_view = view

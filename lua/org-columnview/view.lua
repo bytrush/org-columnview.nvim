@@ -332,7 +332,13 @@ function ColumnView:_build_winbar()
     end
     table.insert(chunks, text)
   end
-  return table.concat(chunks)
+
+  -- The window bar starts at the window edge, while the buffer text (and the
+  -- overlaid cells) starts after the sign, number and fold columns. Prefix the
+  -- header by that offset so the columns line up.
+  local wininfo = vim.fn.getwininfo(self.winid)[1]
+  local textoff = wininfo and wininfo.textoff or 0
+  return string.rep(' ', textoff) .. table.concat(chunks)
 end
 
 ---@param row OrgColumnViewRow
