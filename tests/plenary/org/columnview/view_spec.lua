@@ -488,7 +488,7 @@ describe('ColumnView', function()
     columnview_config.opts.ellipsis = '~'
     assert.are.equal('abc~', Cells.fit('abcdef', 4))
     columnview_config.opts.ellipsis = '…'
-    assert.are.equal('ab…', Cells.fit('abcdef', 4))
+    assert.are.equal('abc…', Cells.fit('abcdef', 4))
 
     columnview_config.opts.ellipsis = original
   end)
