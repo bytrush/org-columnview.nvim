@@ -1305,11 +1305,7 @@ function ColumnView:edit_value()
   local allowed = self.allowed_values[key]
 
   if self.unrestricted_values[key] then
-    local input = compat.input_with_completion(
-      ('Edit %s: '):format(col.title or col.name),
-      current_val,
-      allowed or {}
-    )
+    local input = compat.input_with_completion(('Edit %s: '):format(col.title or col.name), current_val, allowed or {})
     if input and vim.trim(input) ~= '' then
       self:_write(function()
         headline:set_property(prop_name, input)
@@ -1503,7 +1499,8 @@ function ColumnView:edit_attributes()
 
   local title = vim.trim(vim.fn.input(('Column title [%s]: '):format(name), col.title or '') or '')
   local width_input = vim.fn.input('Column width: ', col.width and tostring(col.width) or '') or ''
-  local summary = vim.trim(compat.input_with_completion('Summary: ', col.summary_type or '', Summary.get_summary_types()) or '')
+  local summary =
+    vim.trim(compat.input_with_completion('Summary: ', col.summary_type or '', Summary.get_summary_types()) or '')
   local format = vim.trim(vim.fn.input('Format: ', col.format or '') or '')
 
   col.name = name
@@ -1525,7 +1522,8 @@ function ColumnView:delete_column()
   if not col then
     return
   end
-  local choice = vim.fn.confirm(('Are you sure you want to remove column "%s"?'):format(col.title or col.name), '&Yes\n&No', 2)
+  local choice =
+    vim.fn.confirm(('Are you sure you want to remove column "%s"?'):format(col.title or col.name), '&Yes\n&No', 2)
   if choice ~= 1 then
     return
   end

@@ -206,8 +206,7 @@ function M.register_core_mapping(entry)
     command = '<cmd>lua require("org-columnview").org_columns({ global = vim.v.count > 0 })<CR>'
   elseif entry.name == 'org_columns_update_dblock' then
     -- A count prefix updates every block in the buffer.
-    command =
-      '<cmd>lua require("org-columnview").org_columns_update_dblock({ all = vim.v.count > 0 })<CR>'
+    command = '<cmd>lua require("org-columnview").org_columns_update_dblock({ all = vim.v.count > 0 })<CR>'
   end
 
   core_mappings[entry.category] = core_mappings[entry.category] or {}

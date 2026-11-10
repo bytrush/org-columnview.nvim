@@ -29,8 +29,6 @@ local COLUMN_KEYWORDS = {
   '%TIMESTAMP_IA',
 }
 
-
-
 function Completion:new(opts)
   return setmetatable({
     completion = opts.completion,
