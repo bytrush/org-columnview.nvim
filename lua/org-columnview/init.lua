@@ -201,6 +201,7 @@ local function check_compatibility()
     'orgmode.files',
     'orgmode.config',
     'orgmode.agenda.types',
+    'orgmode.agenda.filter',
     'orgmode.agenda.view.init',
     'orgmode.agenda.view.line',
     'orgmode.agenda.view.token',
@@ -317,6 +318,7 @@ local function register_completion_sources()
   local sources = {
     require('org-columnview.completion'):new({ completion = completion }),
     require('org-columnview.columns_completion'):new({ completion = completion }),
+    require('org-columnview.dblock_completion'):new({ completion = completion }),
   }
   for _, source in ipairs(sources) do
     local ok, err = pcall(completion.add_source, completion, source)
@@ -324,6 +326,46 @@ local function register_completion_sources()
       error(err)
     end
   end
+end
+
+---Insert a `#+BEGIN: columnview` dynamic block at the cursor.
+---@param opts? table
+---@return boolean
+function M.org_columns_insert_dblock(opts)
+  return require('org-columnview.dblock').insert(opts)
+end
+
+---Update the column view dynamic block at the cursor, or every block when
+---`opts.all` is set. Mirrors Emacs' `org-dblock-update`.
+---@param opts? { all?: boolean }
+---@return boolean|number
+function M.org_columns_update_dblock(opts)
+  opts = opts or {}
+  if opts.all then
+    return require('org-columnview.dblock').update_all(opts)
+  end
+  return require('org-columnview.dblock').update(opts)
+end
+
+---Insert a `#+BEGIN: columnview` dynamic block at the cursor.
+---@param opts? table
+---@return boolean
+function M.insert_columnview_dblock(opts)
+  return require('org-columnview.dblock').insert(opts)
+end
+
+---Update the `#+BEGIN: columnview` block at the cursor.
+---@param opts? table
+---@return boolean
+function M.update_columnview_dblock(opts)
+  return require('org-columnview.dblock').update(opts)
+end
+
+---Update every `#+BEGIN: columnview` block in the current buffer.
+---@param opts? table
+---@return number
+function M.update_all_columnview_dblocks(opts)
+  return require('org-columnview.dblock').update_all(opts)
 end
 
 ---Show the help of the column view.
@@ -366,11 +408,23 @@ function M.setup(opts)
   check_compatibility()
   config.setup(opts)
   require('org-columnview.highlights').define()
+  require('org-columnview.ts_compat').setup()
   register_agenda_type()
   register_agenda_menu()
   register_agenda_cleanup()
   register_completion_sources()
   mappings.setup_entry_points()
+
+  vim.api.nvim_create_user_command('OrgColumnsInsertDblock', function()
+    M.insert_columnview_dblock()
+  end, { desc = 'Insert a column view dynamic block', force = true })
+  vim.api.nvim_create_user_command('OrgColumnsUpdateDblock', function()
+    M.update_columnview_dblock()
+  end, { desc = 'Update the column view dynamic block at point', force = true })
+  vim.api.nvim_create_user_command('OrgColumnsUpdateAllDblocks', function()
+    M.update_all_columnview_dblocks()
+  end, { desc = 'Update all column view dynamic blocks', force = true })
+
   return M
 end
 

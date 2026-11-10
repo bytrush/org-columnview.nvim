@@ -24,14 +24,28 @@ describe('Column View Mappings', function()
     local defaults = require('orgmode.config.defaults')
 
     assert.is_not_nil(mappings.org.org_columns)
+    assert.is_not_nil(mappings.org.org_columns_insert_dblock)
+    assert.is_not_nil(mappings.org.org_columns_update_dblock)
     assert.is_not_nil(mappings.agenda.org_agenda_columns)
     assert.are.equal('<prefix>xc', defaults.mappings.org.org_columns)
+    assert.are.equal('<prefix>xx', defaults.mappings.org.org_columns_insert_dblock)
+    assert.are.equal('<prefix>xu', defaults.mappings.org.org_columns_update_dblock)
     assert.are.equal('<prefix>ac', defaults.mappings.agenda.org_agenda_columns)
+
+    assert.are.equal('Column view', mappings.org.org_columns.opts.desc)
+    assert.are.equal('Insert column view dblock', mappings.org.org_columns_insert_dblock.opts.desc)
+    assert.are.equal('Update column view dblock', mappings.org.org_columns_update_dblock.opts.desc)
+    assert.are.equal('Agenda column view', mappings.agenda.org_agenda_columns.opts.desc)
   end)
 
   it('passes a count prefix through to the global view', function()
     local entry = require('orgmode.config.mappings').org.org_columns
     assert.is_truthy(entry.handler:find('global = vim.v.count > 0', 1, true))
+  end)
+
+  it('passes a count prefix through to the dblock update', function()
+    local entry = require('orgmode.config.mappings').org.org_columns_update_dblock
+    assert.is_truthy(entry.handler:find('all = vim.v.count > 0', 1, true))
   end)
 
   it('attaches the column view to the org buffer', function()

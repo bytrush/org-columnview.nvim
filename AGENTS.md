@@ -58,7 +58,7 @@ make format                                           # stylua
 
 | module | role |
 |---|---|
-| `init.lua` | `setup()`, the `org_columns` / `org_agenda_columns` entry points, agenda type and completion registration |
+| `init.lua` | `setup()`, the column-view and dblock entry points, agenda type, completion registration, user commands |
 | `view.lua` | `ColumnView` class: overlay rendering in an org buffer, navigation, editing |
 | `agenda.lua` | the agenda view type, registered as `columns` |
 | `parser.lua` | parse / unparse of the column format, list of special columns |
@@ -66,11 +66,18 @@ make format                                           # stylua
 | `cells.lua` | cell value rendering, shared by the org and the agenda view |
 | `completion.lua` | completion source for the allowed values of a property |
 | `columns_completion.lua` | completion source for the column format in `#+COLUMNS:` / `:COLUMNS:` |
+| `dblock.lua` | insert/update and render `#+BEGIN: columnview` dynamic blocks |
+| `dblock_completion.lua` | completion for the columnview block header, parameters and values |
+| `ts_compat.lua` | lets nvim-orgmode table tools see tables injected into dynamic blocks |
 | `config.lua` | plugin options and the default mappings |
-| `mappings.lua` | in-view mappings, the help window, registration in the nvim-orgmode mapping groups |
+| `mappings.lua` | in-view mappings, the help window, entry-point registration in the nvim-orgmode mapping groups |
 | `types.lua` | LuaCATS type definitions only |
 | `compat.lua` | helpers for the nvim-orgmode APIs the plugin needs but nvim-orgmode does not expose |
 | `highlights.lua` | the `@org.column.*` highlight groups, defined by the plugin and not by nvim-orgmode |
+
+`queries/org/injections.scm` reparses dynamic-block contents as Org tables.
+It is paired with `ts_compat.lua`; removing either disables table editing and
+formatting inside `#+BEGIN: columnview` blocks.
 
 ## nvim-orgmode coupling
 
@@ -98,6 +105,12 @@ make format                                           # stylua
   therefore return `nil` for lines it does not own; otherwise other sources'
   results are filtered against the wrong prefix (this broke the second token of
   `:COLUMNS:`).
+- `headline:get_title()` returns `(title, byte_offset)`. Never pass it directly
+  as the second argument to `vim.fn.input`; the offset becomes the completion
+  argument and raises `E180`. Store it in a local first.
+- `files:all()` lists configured agenda files, not every loaded/current file.
+  Searches that must include the current buffer (for example `:id` in dynamic
+  blocks) must check `files:get_current_file()` first.
 
 ## Conventions
 
@@ -105,10 +118,10 @@ make format                                           # stylua
   the public API of every module. Keep `types.lua` in sync with the fields
   you add.
 - A short module doc comment at the top of each file.
-- Column spec grammar: `%[width]NAME(Title){summary}{allowed values}`. The
-  second brace group (inline allowed values) is a **deliberate** divergence
-  from Emacs, where allowed values live only in `NAME_ALL` properties. Do not
-  "fix" it without updating `COLUMN_VIEW_IMPLEMENTATION_PLAN.md` §7.3.2.
+- Written column format is Emacs-compatible:
+  `%[width]NAME(Title){OPERATOR[;FMT]}`. Inline `{VALUES}` / `{NAME_ALL}`
+  braces are read-only legacy data and are migrated to `PROPERTY_ALL` on the
+  next format write; `Parser.unparse` never emits them.
 - New special columns go into `SPECIAL_COLUMNS` in `parser.lua` and get a
   branch in `cells.lua:get_special_value`.
 - The org-buffer view draws its header into the window `winbar` and the cells

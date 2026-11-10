@@ -1,0 +1,79 @@
+# Column view dynamic block demo for 7.1.1 and 7.1.2
+#
+# How to use:
+#   1. Open this file in Neovim with org-columnview.nvim loaded.
+#   2. Put the cursor inside a block and run :OrgColumnsUpdateDblock.
+#   3. To create a block, put the cursor where the table should go and run
+#      :OrgColumnsInsertDblock, then choose local, global, or an entry ID.
+#   4. Run :OrgColumnsUpdateAllDblocks to refresh every block in the buffer.
+#   5. The table inside a block is a normal Org table: try table formatting,
+#      cell navigation, and the usual nvim-orgmode table editing keys inside it.
+#
+# Try the parameters by editing the #+BEGIN: line and updating:
+#   :id local | :id global | :id <entry ID>
+#   :format "%10ITEM %10OWNER"
+#   :hlines 1 | :hlines t
+#   :indent t
+#   :link t
+#   :maxlevel 1
+#   :skip-empty-rows t
+#   :exclude-tags work
+#   :vlines t
+#   :match work
+#
+# The global table uses the file level #+COLUMNS.
+# The local table uses Project A's :COLUMNS: property.
+# Custom :formatter functions are only available through the Lua API.
+
+#+TITLE: Column view dynamic block demo
+#+COLUMNS: %20ITEM %10OWNER %8SCORE{+}
+
+* Project A
+:PROPERTIES:
+:COLUMNS: %20ITEM %10OWNER %8SCORE{+}
+:END:
+Body of Project A. Put the cursor here to insert another block.
+
+  #+BEGIN: columnview :hlines t :id local
+| ITEM            | OWNER | SCORE |
+|-----------------+-------+-------|
+| Project A       |       | Σ=5   |
+| DONE Alice task | Alice | 2     |
+| TODO Bob task   | Bob   | 3     |
+| TODO Empty task |       |       |
+#+END:
+
+** DONE Alice task  :work:
+:PROPERTIES:
+:OWNER: Alice
+:SCORE: 2
+:END:
+
+** TODO Bob task  :work:
+:PROPERTIES:
+:OWNER: Bob
+:SCORE: 3
+:END:
+
+** TODO Empty task
+:PROPERTIES:
+:OWNER:
+:SCORE:
+:END:
+
+* Project B
+:PROPERTIES:
+:OWNER: Carol
+:SCORE: 9
+:END:
+
+#+BEGIN: columnview :hlines 1 :id global
+| ITEM            | OWNER | SCORE |
+|-----------------+-------+-------|
+| Project A       |       | Σ=5   |
+| DONE Alice task | Alice | 2     |
+| TODO Bob task   | Bob   | 3     |
+| TODO Empty task |       |       |
+|-----------------+-------+-------|
+| Project B       | Carol | 9     |
+#+END:

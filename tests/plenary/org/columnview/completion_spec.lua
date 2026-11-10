@@ -24,6 +24,57 @@ describe('Column View Completion', function()
     }, result)
   end)
 
+  it('completes the #+BEGIN: columnview header', function()
+    setup_file('#+BE')
+    local result = org.completion:omnifunc(0, '#+BE')
+    assert.are.same({
+      { menu = '[Org]', word = '#+BEGIN: columnview' },
+    }, result)
+  end)
+
+  it('completes the columnview dynamic block name', function()
+    setup_file('#+BEGIN: co')
+    local result = org.completion:omnifunc(0, 'co')
+    assert.are.same({
+      { menu = '[Org]', word = 'columnview' },
+    }, result)
+  end)
+
+  it('completes columnview block parameters', function()
+    setup_file('#+BEGIN: columnview ')
+    local result = org.completion:omnifunc(0, '')
+    assert.are.same({
+      { menu = '[Org]', word = ':id' },
+      { menu = '[Org]', word = ':format' },
+      { menu = '[Org]', word = ':hlines' },
+      { menu = '[Org]', word = ':indent' },
+      { menu = '[Org]', word = ':match' },
+      { menu = '[Org]', word = ':maxlevel' },
+      { menu = '[Org]', word = ':skip-empty-rows' },
+      { menu = '[Org]', word = ':vlines' },
+      { menu = '[Org]', word = ':link' },
+      { menu = '[Org]', word = ':exclude-tags' },
+      { menu = '[Org]', word = ':formatter' },
+    }, result)
+  end)
+
+  it('filters columnview block parameters', function()
+    setup_file('#+BEGIN: columnview :i')
+    local result = org.completion:omnifunc(0, ':i')
+    assert.are.same({
+      { menu = '[Org]', word = ':id' },
+      { menu = '[Org]', word = ':indent' },
+    }, result)
+  end)
+
+  it('completes the :id value of a columnview block', function()
+    setup_file('#+BEGIN: columnview :id l')
+    local result = org.completion:omnifunc(0, 'l')
+    assert.are.same({
+      { menu = '[Org]', word = 'local' },
+    }, result)
+  end)
+
   it('completes the COLUMNS property', function()
     setup_file(':COL')
     local result = org.completion:omnifunc(0, ':COL')

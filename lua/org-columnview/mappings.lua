@@ -158,8 +158,30 @@ end
 ---The entry points of the plugin and the nvim-orgmode mapping group they
 ---belong to.
 M.entry_points = {
-  { name = 'org_columns', category = 'org' },
-  { name = 'org_agenda_columns', category = 'agenda' },
+  {
+    name = 'org_columns',
+    category = 'org',
+    desc = 'Column view',
+    help_desc = 'Show the column view',
+  },
+  {
+    name = 'org_columns_insert_dblock',
+    category = 'org',
+    desc = 'Insert column view dblock',
+    help_desc = 'Insert a column view dynamic block',
+  },
+  {
+    name = 'org_columns_update_dblock',
+    category = 'org',
+    desc = 'Update column view dblock',
+    help_desc = 'Update the column view dynamic block at point',
+  },
+  {
+    name = 'org_agenda_columns',
+    category = 'agenda',
+    desc = 'Agenda column view',
+    help_desc = 'Show the agenda as a column view',
+  },
 }
 
 ---Whether the current buffer is an agenda buffer.
@@ -171,7 +193,7 @@ end
 ---Register the entry points in the mapping groups of nvim-orgmode, so that
 ---they are attached to the org and agenda buffers and show up in the mapping
 ---list and in the help of nvim-orgmode.
----@param entry { name: string, category: string }
+---@param entry { name: string, category: string, desc: string, help_desc: string }
 function M.register_core_mapping(entry)
   local MapEntry = require('orgmode.config.mappings.map_entry')
   local core_mappings = require('orgmode.config.mappings')
@@ -182,12 +204,16 @@ function M.register_core_mapping(entry)
   if entry.name == 'org_columns' then
     -- A count prefix (`1<prefix>xc`) requests the whole-file view.
     command = '<cmd>lua require("org-columnview").org_columns({ global = vim.v.count > 0 })<CR>'
+  elseif entry.name == 'org_columns_update_dblock' then
+    -- A count prefix updates every block in the buffer.
+    command =
+      '<cmd>lua require("org-columnview").org_columns_update_dblock({ all = vim.v.count > 0 })<CR>'
   end
 
   core_mappings[entry.category] = core_mappings[entry.category] or {}
   if not core_mappings[entry.category][entry.name] then
     core_mappings[entry.category][entry.name] = MapEntry:new(command, {
-      opts = { desc = 'org column view', help_desc = 'Show the column view' },
+      opts = { desc = entry.desc, help_desc = entry.help_desc },
     })
   end
 
@@ -227,8 +253,11 @@ function M.setup_entry_points()
             -- A count prefix (`1<prefix>xc`) requests the whole-file view.
             return require('org-columnview').org_columns({ global = vim.v.count > 0 })
           end
+          if entry.name == 'org_columns_update_dblock' then
+            return require('org-columnview').org_columns_update_dblock({ all = vim.v.count > 0 })
+          end
           require('org-columnview')[entry.name]()
-        end, { nowait = true, silent = true, desc = 'org column view' })
+        end, { nowait = true, silent = true, desc = entry.desc })
       end
     end
   end

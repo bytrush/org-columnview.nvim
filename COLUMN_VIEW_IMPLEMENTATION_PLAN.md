@@ -372,8 +372,8 @@ parity nice-to-haves.
 
 | # | Feature | Emacs reference | Current state | Status |
 |---|---------|-----------------|---------------|--------|
-| 7.1.1 | `BEGIN_COLUMNVIEW` dynamic block (`org-columns-insert-dblock`) — export the view as a static table | `org-colview.el:1553` (`org-dblock-write:columnview`), `org-colview.el:1729` | no `COLUMNVIEW` support anywhere in `lua/` | [TODO] |
-| 7.1.2 | Block parameters `:id`, `:format`, `:hlines`, `:indent`, `:match`, `:maxlevel`, `:skip-empty-rows`, `:vlines`, `:link`, `:exclude-tags`, `:formatter` | `org-colview.el:1553` | — | [TODO] (with 7.1.1) |
+| 7.1.1 | `BEGIN_COLUMNVIEW` dynamic block (`org-columns-insert-dblock`) — export the view as a static table | `org-colview.el:1553` (`org-dblock-write:columnview`), `org-colview.el:1729` | `dblock.lua` inserts and updates aligned `#+BEGIN: columnview` tables; commands in `init.lua:397` | [DONE] |
+| 7.1.2 | Block parameters `:id`, `:format`, `:hlines`, `:indent`, `:match`, `:maxlevel`, `:skip-empty-rows`, `:vlines`, `:link`, `:exclude-tags`, `:formatter` | `org-colview.el:1553` | all parameters supported; `:formatter` accepts a Lua function through the API (`dblock.lua:321`) | [DONE] |
 | 7.1.3 | Summary write-back into the parent's property drawer (`org-columns-compute-all`, `org-compute-property-at-point`) | `org-colview.el:1364`, `org.el:13994` | summaries are computed on the fly only; see §1.3 [DROPPED] | [TODO] (revisit the [DROPPED] decision) |
 | 7.1.4 | User-defined summary operators (`org-columns-summary-types`) | `org-colview.el:88` | `summary_types` accepts summarize or summarize/collect definitions; custom operators are parsed, completed and collected (`summary.lua:44`, `parser.lua:277`, `cells.lua:46`) | [DONE] |
 | 7.1.5 | Allowed-values hook (`org-property-allowed-value-functions`) | `org.el:14007` | `allowed_value_functions` are consulted before `PROPERTY_ALL` (`compat.lua:117`, `config.lua:36`) | [DONE] |
@@ -506,7 +506,7 @@ Ordered by value per effort; update the checkbox when an item ships.
 - [x] 7.5.3–7.5.6 column editing polish
 - [x] 7.1.4, 7.1.5 config hooks
 - [x] 7.3.2 Emacs-compatible format grammar (re-validate alongside 7.1.4)
-- [ ] 7.1.1, 7.1.2 `BEGIN_COLUMNVIEW` block
+- [x] 7.1.1, 7.1.2 `BEGIN_COLUMNVIEW` block
 - [ ] 7.1.6–7.1.9 agenda parity
 - [ ] 7.1.3, 7.4.3 summary write-back
 - [ ] 7.1.12, 7.1.13, 7.2.6–7.2.8 small config/behaviour items

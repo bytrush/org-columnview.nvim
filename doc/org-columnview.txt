@@ -66,6 +66,12 @@ Entry points: >
                                           prefix (`1<prefix>xc`) always shows
                                           the whole file, like Emacs' `C-u
                                           C-c C-x C-c`.
+    org_columns_insert_dblock
+                           <prefix>xx    Insert a columnview dynamic block.
+    org_columns_update_dblock
+                           <prefix>xu    Update the block at the cursor. With a
+                                         count prefix, update every block in
+                                         the buffer.
     org_agenda_columns     <prefix>ac    Open the agenda as a column view.
 <
 The prefix is the one of nvim-orgmode (|orgmode-mappings|), `<Leader>o` by
@@ -150,6 +156,56 @@ written back to the buffer, like in Emacs: into the `:COLUMNS:` property of
 the headline the view started at when it has one, otherwise into the first
 `#+COLUMNS:` keyword (created before the first headline if missing). The
 agenda column view keeps such edits in memory only.
+
+==============================================================================
+5.1 DYNAMIC BLOCKS                                *org-columnview-dynamic-blocks*
+
+`#+BEGIN: columnview` dynamic blocks export the view as a static Org table.
+Place the cursor where the table should go and run
+`:OrgColumnsInsertDblock`. Update the block at the cursor with
+`:OrgColumnsUpdateDblock`, or every block in the buffer with
+`:OrgColumnsUpdateAllDblocks`. The same actions are bound to `<prefix>xx`
+(insert) and `<prefix>xu` (update; a count prefix updates all blocks). >
+
+    #+BEGIN: columnview :id local :hlines 1
+    |ITEM|OWNER|SCORE|
+    |-|
+    |Project||Σ=5|
+    #+END:
+<
+Parameters: >
+
+    :id                 local (default), global, <ID>, or file:<path>.
+                        Selects the current COLUMNS-owner subtree, the whole
+                        file, an entry with that :ID:, or a file.
+    :format             Column format; overrides the normal COLUMNS format.
+                        Quote it when it contains spaces:
+                        :format "%10ITEM %10OWNER"
+    :hlines             t or a number. t adds a horizontal line before every
+                        row; N adds one before rows with level <= N.
+                        Inserting a block uses 1.
+    :indent             t indents the ITEM cell by two spaces per level.
+    :match              Org agenda tag/property match expression.
+    :maxlevel           Omit headlines below this outline level.
+    :skip-empty-rows    t drops rows whose non-ITEM columns are all empty.
+    :vlines             t adds Org column-group markers for vertical lines.
+    :link               t links ITEM cells to their source headlines.
+    :exclude-tags       Space-separated tags to exclude.
+    :formatter          Lua function for custom output; pass it through
+                        require('org-columnview').update_columnview_dblock(
+                        { formatter = fn }).
+<
+`t` is the Org/Emacs boolean true value, not a placeholder: `:hlines t`
+means "hline before every row". Boolean parameters accept `t`/`true`/`1` to
+enable and `nil`/`false`/`f`/`0` to disable.
+
+Parameter names are case-insensitive. Quoted values may contain spaces;
+unquoted values end at the next `:parameter`.
+
+The table inside the block is parsed through a Tree-sitter injection, so
+nvim-orgmode's table formatting, cell navigation and table-aware highlighting
+work inside `columnview` blocks. Completion suggests `#+BEGIN: columnview`,
+the block parameters, and common parameter values.
 
 ==============================================================================
 6. CONFIGURATION                                     *org-columnview-configuration*

@@ -45,6 +45,11 @@ orgmode instance.
   property, the subtree under the cursor when no entry owns it, or the whole
   file when the cursor is before the first headline. A count prefix
   (`1<prefix>xc`) always shows the whole file, like Emacs' `C-u C-c C-x C-c`.
+- `org_columns_insert_dblock` (`<prefix>xx` by default) inserts a
+  `#+BEGIN: columnview` dynamic block.
+- `org_columns_update_dblock` (`<prefix>xu` by default) updates the block at
+  the cursor; a count prefix (`1<prefix>xu`) updates every block in the
+  buffer.
 - `org_agenda_columns` (`<prefix>ac` by default) opens the agenda as a column
   view.
 
@@ -66,6 +71,49 @@ be opened from a buffer that was opened before the plugin was loaded.
 The column format is read from the `COLUMNS` property of the headline or one of
 its ancestors, from the `#+COLUMNS:` keyword of the file, or from the
 `default_format` option. Without any of them the view is not shown.
+
+## Dynamic blocks
+
+`#+BEGIN: columnview` dynamic blocks export the view as a static Org table.
+Place the cursor where the table should go and run
+`:OrgColumnsInsertDblock`. Update the block at the cursor with
+`:OrgColumnsUpdateDblock`, or every block in the buffer with
+`:OrgColumnsUpdateAllDblocks`. The same actions are bound to `<prefix>xx`
+(insert) and `<prefix>xu` (update; a count prefix updates all blocks).
+
+```org
+#+BEGIN: columnview :id local :hlines 1
+|ITEM|OWNER|SCORE|
+|-|
+|Project||Σ=5|
+#+END:
+```
+
+| Parameter | Value | Description |
+|---|---|---|
+| `:id` | `local` (default), `global`, `<ID>`, `file:<path>` | Scope of the table: the current `COLUMNS` owner subtree, the whole file, an entry with that `:ID:`, or a file. |
+| `:format` | column format | Overrides the normal `COLUMNS` format. Quote it when it contains spaces: `:format "%10ITEM %10OWNER"`. |
+| `:hlines` | `t` or a number | `t` inserts a horizontal line before every row. A number inserts one before rows with level ≤ N. Insert uses `1`. |
+| `:indent` | `t` | Indents the ITEM cell by two spaces per outline level. |
+| `:match` | match string | Keeps only entries matching the Org agenda tag/property match expression. |
+| `:maxlevel` | number | Omits headlines below this outline level. |
+| `:skip-empty-rows` | `t` | Drops rows whose non-ITEM columns are all empty. |
+| `:vlines` | `t` | Adds Org column-group markers for vertical lines. |
+| `:link` | `t` | Turns ITEM cells into links to their source headlines. |
+| `:exclude-tags` | space-separated tags | Excludes entries carrying any of these tags. |
+| `:formatter` | Lua function | Custom table formatter. Pass it through `require('org-columnview').update_columnview_dblock({ formatter = fn })`. |
+
+`t` is the Org/Emacs boolean true value, not a placeholder: `:hlines t` means
+“hline before every row”. Boolean parameters accept `t`/`true`/`1` to enable
+and `nil`/`false`/`f`/`0` to disable.
+
+Parameter names are case-insensitive in the block line. A quoted value may
+contain spaces; unquoted values end at the next `:parameter`.
+
+The table inside the block is parsed through a Tree-sitter injection, so
+nvim-orgmode's table formatting, cell navigation and table-aware highlighting
+work inside `columnview` blocks. Completion suggests `#+BEGIN: columnview`,
+the block parameters, and common parameter values.
 
 ## Mappings
 
