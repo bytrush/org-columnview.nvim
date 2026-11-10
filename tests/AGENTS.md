@@ -13,6 +13,11 @@
   and implicit allowed-value lookup can leak between tests.
 - Run `make test FILE=...` invocations sequentially. Parallel headless nvim
   runs share plenary/temp state and can hang or time out.
+- CI matrix jobs have no sibling nvim-orgmode checkout, so
+  `tests/minimal_init.lua` clones it. The clone must be **prepended** to
+  `runtimepath` (`load_plugin(..., true)`); appending it lets Neovim's own
+  `ftplugin/org.vim` set `b:did_ftplugin` first, so nvim-orgmode's ftplugin
+  never runs and fold-dependent tests fail with `E490: No fold found`.
 - Headless UI must be stubbed: `Calendar.new` needs an
   `open():next(function(date, cleared) ... end)` stub with real `Date` values,
   and `delete_column` needs `vim.fn.confirm` stubbed or it blocks.

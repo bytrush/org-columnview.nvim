@@ -17,10 +17,15 @@ end
 ---Downloads a plugin from a given url and registers it on the 'runtimepath'
 ---@param plugin_name OrgPluginName
 ---@param plugin_url OrgPluginUrl
-function M.load_plugin(plugin_name, plugin_url)
+---@param prepend? boolean Register the plugin before the runtime instead of after it
+function M.load_plugin(plugin_name, plugin_url, prepend)
   local package_root = M.root('plugins/')
   local install_destination = package_root .. plugin_name
-  vim.opt.runtimepath:append(install_destination)
+  if prepend then
+    vim.opt.runtimepath:prepend(install_destination)
+  else
+    vim.opt.runtimepath:append(install_destination)
+  end
 
   if not vim.uv.fs_stat(package_root) then
     vim.fn.mkdir(package_root, 'p')
@@ -123,7 +128,9 @@ if orgmode_path then
   -- `b:did_ftplugin` and prevent it from running.
   vim.opt.runtimepath:prepend(orgmode_path)
 else
-  M.load_plugin('orgmode', 'https://github.com/nvim-orgmode/orgmode.git')
+  -- Prepend the clone for the same reason as the local checkout above: the
+  -- nvim-orgmode ftplugin has to run before Neovim's own `ftplugin/org.vim`.
+  M.load_plugin('orgmode', 'https://github.com/nvim-orgmode/orgmode.git', true)
 end
 
 -- Register the column view plugin itself
