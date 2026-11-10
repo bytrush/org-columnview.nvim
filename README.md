@@ -249,7 +249,8 @@ The full documentation is in the help file: `:help org-columnview`.
 
 ## Differences to Emacs
 
-The column view is a port, not a byte for byte copy. The known differences are
-tracked in the [Emacs parity backlog][parity] of this repository.
+The column view is a port, not a byte for byte copy. The differences to Emacs,
+including the intentional divergences, are documented in the
+[implementation plan][parity] of this repository.
 
-[parity]: https://github.com/nvim-orgmode/org-columnview.nvim/blob/master/COLUMN_VIEW_IMPLEMENTATION_PLAN.md
+[parity]: https://github.com/bytrush/org-columnview.nvim/blob/master/COLUMN_VIEW_IMPLEMENTATION_PLAN.md

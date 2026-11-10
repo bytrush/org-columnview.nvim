@@ -44,7 +44,7 @@ With lazy.nvim: >lua
 
     {
       'nvim-orgmode/orgmode',
-      dependencies = { 'nvim-orgmode/org-columnview.nvim' },
+      dependencies = { 'bytrush/org-columnview.nvim' },
       config = function()
         require('orgmode').setup()
         require('org-columnview').setup()
@@ -269,9 +269,10 @@ plugin.
 ==============================================================================
 7. DIFFERENCES TO EMACS                                *org-columnview-differences*
 
-The column view is a port, not a copy. The known differences to Emacs are
-tracked in the implementation plan of the repository:
+The column view is a port, not a byte for byte copy. The differences to Emacs,
+including the intentional divergences, are documented in the implementation
+plan of the repository:
 
-  https://github.com/nvim-orgmode/org-columnview.nvim
+  https://github.com/bytrush/org-columnview.nvim
 
 vim:tw=78:ts=8:noet:ft=help:norl:

@@ -5,10 +5,10 @@ Implement Emacs Orgmode's Column View feature. Column View overlays a tabular st
 
 Reference: https://orgmode.org/manual/Column-View.html
 
-> **Status: implemented as a separate plugin, with a known parity backlog.**
+> **Status: feature-complete; the Emacs parity backlog is resolved.**
 >
 > The column view is **not** part of nvim-orgmode. It lives in its own
-> repository, [org-columnview.nvim](https://github.com/nvim-orgmode/org-columnview.nvim),
+> repository, [org-columnview.nvim](https://github.com/bytrush/org-columnview.nvim),
 > which depends on nvim-orgmode for the org file, headline and agenda
 > handling. The split keeps a large feature out of the nvim-orgmode upstream
 > and gives it its own release cycle.
@@ -18,8 +18,9 @@ Reference: https://orgmode.org/manual/Column-View.html
 > `[DONE]` implemented, `[MISSING]` not in the codebase, `[DROPPED]` decided
 > against (do not implement), `[TODO]` known gap that is queued for work.
 >
-> Documentation is shipped ([DONE] §6). The remaining work is the Emacs parity
-> backlog tracked in [Phase 7](#phase-7-emacs-parity-backlog).
+> Documentation is shipped ([DONE] §6). Every row of the Emacs parity backlog
+> in [Phase 7](#phase-7-emacs-parity-backlog) is `[DONE]`, `[N/A]` or
+> `[DROPPED]`; no parity work is queued.
 
 ---
 
