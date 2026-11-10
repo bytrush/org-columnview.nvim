@@ -224,6 +224,8 @@ require('org-columnview').setup({
   skip_archived_trees = true,
   -- Write computed summaries into existing parent properties.
   write_summaries = false,
+  -- Open the agenda as a column view instead of its normal rendering.
+  agenda_columns_initially = false,
   -- Prefix used for the mappings, defaults to the nvim-orgmode prefix
   prefix = nil,
   mappings = {

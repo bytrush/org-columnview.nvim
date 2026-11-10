@@ -377,13 +377,13 @@ parity nice-to-haves.
 | 7.1.3 | Summary write-back into the parent's property drawer (`org-columns-compute-all`, `org-compute-property-at-point`) | `org-colview.el:1364`, `org.el:13994` | opt-in `write_summaries`; writes the first column per property into existing parent properties (`view.lua:141`) | [DONE] |
 | 7.1.4 | User-defined summary operators (`org-columns-summary-types`) | `org-colview.el:88` | `summary_types` accepts summarize or summarize/collect definitions; custom operators are parsed, completed and collected (`summary.lua:44`, `parser.lua:277`, `cells.lua:46`) | [DONE] |
 | 7.1.5 | Allowed-values hook (`org-property-allowed-value-functions`) | `org.el:14007` | `allowed_value_functions` are consulted before `PROPERTY_ALL` (`compat.lua:117`, `config.lua:36`) | [DONE] |
-| 7.1.6 | Per-date-line summaries in a normal agenda (`org-agenda-colview-summarize`) | `org-colview.el:1819` | agenda column view is one flat table, `lua/org-columnview/agenda.lua:441` | [TODO] |
-| 7.1.7 | Recompute summaries in contributing buffers (`org-agenda-columns-compute-summary-properties`) | `org-colview.el:1883` | — | [TODO] |
-| 7.1.8 | Appointment duration counts toward `Effort` (`org-agenda-columns-add-appointments-to-effort-sum`) | `org-colview.el:1883` | — | [TODO] |
-| 7.1.9 | Start the agenda in column view (`org-agenda-view-columns-initially`) | `org-agenda.el:2103` | — | [TODO] |
+| 7.1.6 | Per-date-line summaries in a normal agenda (`org-agenda-colview-summarize`) | `org-colview.el:1819` | [N/A] the column view is a separate flat table (7.5.8), not an overlay with date lines |
+| 7.1.7 | Recompute summaries in contributing buffers (`org-agenda-columns-compute-summary-properties`) | `org-colview.el:1883` | [N/A] summaries are computed from live headline data; there is no source-buffer summary cache to refresh |
+| 7.1.8 | Appointment duration counts toward `Effort` (`org-agenda-columns-add-appointments-to-effort-sum`) | `org-colview.el:1883` | [N/A] nvim-orgmode has no appointment/diary agenda entries |
+| 7.1.9 | Start the agenda in column view (`org-agenda-view-columns-initially`) | `org-agenda.el:2103` | `agenda_columns_initially` replaces a freshly opened agenda with the column view (`init.lua:315`) | [DONE] |
 | 7.1.10 | Skip archived trees (`org-columns-skip-archived-trees`) | `org.el:4142` | `ARCHIVE`-tagged trees are skipped by default; `skip_archived_trees = false` re-enables them (`view.lua:146`, `agenda.lua:485`, `dblock.lua:251`) | [DONE] |
 | 7.1.11 | Global column view via prefix argument (`C-u C-c C-x C-c`) | `org-colview.el:887` | a count prefix (`1<prefix>xc`, the Vim equivalent of `C-u`) opens the whole-file view (`init.lua:35`, `mappings.lua:179`) | [DONE] |
-| 7.1.12 | Configurable truncation marker (`org-columns-ellipses`, default `..`) | `org.el:3221` | `ellipsis` option, default `..` (`cells.lua:233`) | [DONE] |
+| 7.1.12 | Configurable truncation marker (`org-columns-ellipses`, default `..`) | `org.el:3221` | `ellipsis` option, plugin default `…` (`cells.lua:233`) | [DONE] |
 | 7.1.13 | Configurable checkbox values (`org-columns-checkbox-allowed-values`) | `org-colview.el:62` | `checkbox_allowed_values` option, default `[ ]`/`[X]` (`view.lua:828`, `agenda.lua:885`) | [DONE] |
 
 ### 7.2 Editing semantics that diverge from Emacs
@@ -507,7 +507,7 @@ Ordered by value per effort; update the checkbox when an item ships.
 - [x] 7.1.4, 7.1.5 config hooks
 - [x] 7.3.2 Emacs-compatible format grammar (re-validate alongside 7.1.4)
 - [x] 7.1.1, 7.1.2 `BEGIN_COLUMNVIEW` block
-- [ ] 7.1.6–7.1.9 agenda parity
+- [x] 7.1.6–7.1.9 agenda parity (7.1.6–7.1.8 N/A for the separate flat view, 7.1.9 done)
 - [x] 7.1.3, 7.4.3 summary write-back
 - [x] 7.2.7 `edit_allowed` storage format
 - [x] 7.1.10 skip archived trees
@@ -530,7 +530,7 @@ Ordered by value per effort; update the checkbox when an item ships.
 | 9 | Documentation | [DONE] |
 | 10 | Extraction into a separate plugin | [DONE] |
 | 10a | Migration cleanup of the core | [DONE] |
-| 11 | Emacs parity backlog | [TODO] (see [Phase 7](#phase-7-emacs-parity-backlog)) |
+| 11 | Emacs parity backlog | [DONE] (Phase 7 resolved; remaining rows are N/A or dropped) |
 
 ---
 

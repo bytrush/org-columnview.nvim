@@ -50,4 +50,31 @@ describe('Agenda column view scope', function()
     end
     assert.are.same({ 'Renamed' }, column_titles)
   end)
+
+  it('starts the agenda in columns view when configured', function()
+    local orgmode = require('orgmode')
+    local today = os.date('%Y-%m-%d')
+    helpers.create_agenda_file({
+      '#+COLUMNS: %ITEM',
+      '',
+      '* Initial columns probe',
+      '  <' .. today .. '>',
+    })
+
+    local columnview = require('org-columnview')
+    columnview.setup({ agenda_columns_initially = true })
+
+    local agenda = orgmode.agenda
+    agenda:agenda():wait()
+
+    assert.is_not_nil(agenda.views[1].columns)
+    assert.is_not_nil(agenda.views[1].headlines)
+
+    local titles = vim.tbl_map(function(headline)
+      return (headline:get_title())
+    end, agenda.views[1].headlines)
+    assert.is_truthy(vim.tbl_contains(titles, 'Initial columns probe'))
+
+    columnview.setup({ agenda_columns_initially = false })
+  end)
 end)

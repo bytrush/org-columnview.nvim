@@ -30,6 +30,7 @@ local M = {}
 ---@field checkbox_allowed_values? string[]
 ---@field skip_archived_trees? boolean
 ---@field write_summaries? boolean
+---@field agenda_columns_initially? boolean
 ---@field prefix? string
 ---@field mappings? table
 

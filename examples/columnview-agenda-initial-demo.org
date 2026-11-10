@@ -1,0 +1,33 @@
+# Manual test for starting the agenda in column view (7.1.9)
+#
+# 1. Load examples/columnview-agenda-initial-setup.lua.
+# 2. Open the agenda with <prefix>oa, :Org agenda, or:
+#      :lua require('orgmode').agenda:agenda()
+# 3. The agenda must open directly as a table, not as the normal agenda list.
+# 4. Disable the option and reopen:
+#      :lua require('org-columnview').setup({ agenda_columns_initially = false })
+#    The agenda must render normally.
+#
+# The dated entries below are chosen for the current week. Adjust the dates if
+# your agenda span does not include them. The undated entry must stay out of the
+# agenda (and therefore out of the initial column view).
+
+#+TITLE: Agenda initial columns demo
+#+COLUMNS: %20ITEM %10TODO %12SCHEDULED %10OWNER
+
+* TODO Today agenda task
+SCHEDULED: <2026-11-10 Tue>
+:PROPERTIES:
+:OWNER: Alice
+:END:
+
+* TODO Tomorrow agenda task
+SCHEDULED: <2026-11-11 Wed>
+:PROPERTIES:
+:OWNER: Bob
+:END:
+
+* Undated task
+:PROPERTIES:
+:OWNER: Carol
+:END:

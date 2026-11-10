@@ -309,6 +309,28 @@ local function register_agenda_type()
   types.columns = require('org-columnview.agenda')
 end
 
+---Optionally replace a freshly opened agenda with its column view, mirroring
+---Emacs' `org-agenda-view-columns-initially`.
+---@private
+local function register_agenda_initial_view()
+  local Agenda = require('orgmode.agenda')
+  if Agenda._org_columnview_initial then
+    return
+  end
+  Agenda._org_columnview_initial = true
+
+  local original = Agenda.agenda
+  Agenda.agenda = function(self, opts)
+    local result = original(self, opts)
+    if not config.agenda_columns_initially then
+      return result
+    end
+    return result:next(function(value)
+      return M.org_agenda_columns() or value
+    end)
+  end
+end
+
 ---Register the completion sources of the plugin: the allowed values of a
 ---property and the column format of a `#+COLUMNS:` keyword. The orgmode
 ---instance is recreated on every `orgmode.setup()` call, so the sources have to
@@ -410,6 +432,7 @@ function M.setup(opts)
   require('org-columnview.highlights').define()
   require('org-columnview.ts_compat').setup()
   register_agenda_type()
+  register_agenda_initial_view()
   register_agenda_menu()
   register_agenda_cleanup()
   register_completion_sources()
