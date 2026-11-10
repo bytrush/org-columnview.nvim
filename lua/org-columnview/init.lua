@@ -331,8 +331,11 @@ local function register_agenda_type()
   types.columns = require('org-columnview.agenda')
 end
 
----Optionally replace a freshly opened agenda with its column view, mirroring
----Emacs' `org-agenda-view-columns-initially`.
+---Optionally replace a freshly rendered agenda with its column view, mirroring
+---Emacs' `org-agenda-view-columns-initially`. Emacs runs
+---`org-agenda-finalize` for every agenda command (the daily/weekly agenda, the
+---TODO list, tag and search matches, and custom commands), so wrapping
+---`prepare_and_render` covers all of them.
 ---@private
 local function register_agenda_initial_view()
   local Agenda = require('orgmode.agenda')
@@ -341,14 +344,34 @@ local function register_agenda_initial_view()
   end
   Agenda._org_columnview_initial = true
 
-  local original = Agenda.agenda
-  Agenda.agenda = function(self, opts)
-    local result = original(self, opts)
-    if not config.agenda_columns_initially then
-      return result
+  ---@param view? OrgAgendaViewType
+  ---@return boolean
+  local function is_columns_view(view)
+    return view ~= nil and getmetatable(view) == require('org-columnview.agenda')
+  end
+
+  local original = Agenda.prepare_and_render
+  Agenda.prepare_and_render = function(self)
+    if not config.agenda_columns_initially or Agenda._org_columnview_initializing or is_columns_view(self.views[1]) then
+      return original(self)
     end
-    return result:next(function(value)
-      return M.org_agenda_columns() or value
+
+    return original(self):next(function(value)
+      -- A view can abort before rendering; there is no agenda buffer to
+      -- convert in that case.
+      if not is_agenda_buffer() or is_columns_view(self.views[1]) then
+        return value
+      end
+
+      -- Guard against re-entering this wrapper while the column view opens.
+      Agenda._org_columnview_initializing = true
+      local ok, columns = pcall(M.org_agenda_columns)
+      Agenda._org_columnview_initializing = false
+      if not ok then
+        vim.notify(('org-columnview: could not open the column view: %s'):format(columns), vim.log.levels.WARN)
+        return value
+      end
+      return columns or value
     end)
   end
 end

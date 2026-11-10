@@ -205,7 +205,8 @@ headline the view started at when it has one, otherwise into the first
 require('org-columnview').setup({
   -- Column format used when no COLUMNS property or #+COLUMNS: keyword is found
   default_format = '%25ITEM %10Effort(Effort){:} %10CLOCKSUM %10CLOCKSUM_T %10Tags %10TODO',
-  -- Column format used in the agenda when nothing else is defined
+  -- Column format used in the agenda when nothing else is defined. When nil,
+  -- the format of the first agenda entry is used, then default_format.
   default_format_for_agenda = nil,
   -- Column format that overrides everything in the agenda
   overriding_columns_format = nil,
@@ -225,7 +226,8 @@ require('org-columnview').setup({
   skip_archived_trees = true,
   -- Write computed summaries into existing parent properties.
   write_summaries = false,
-  -- Open the agenda as a column view instead of its normal rendering.
+  -- Open every agenda command (the agenda, TODO list, tags, search and custom
+  -- commands) as a column view instead of its normal rendering.
   agenda_columns_initially = false,
   -- Prefix used for the mappings, defaults to the nvim-orgmode prefix
   prefix = nil,

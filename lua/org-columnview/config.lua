@@ -5,7 +5,7 @@
 ---plugin. The `prefix` option defaults to the prefix used by nvim-orgmode.
 ---@class OrgColumnViewConfig
 ---@field default_format string Column format used when no `COLUMNS` property or `#+COLUMNS:` keyword is found
----@field default_format_for_agenda? string Column format used in the agenda when nothing else is defined
+---@field default_format_for_agenda? string Column format used in the agenda when nothing else is defined; nil falls back to the first agenda entry's format, then `default_format`
 ---@field overriding_columns_format? string Column format that overrides everything in the agenda
 ---@field modify_value_for_display_function? fun(column: string|nil, value: string): string|nil Called to modify the displayed value
 ---@field summary_types? table<string, any> Custom summary operators, mapping the operator name to a function `(values, format)` or `{ summarize = fn, collect = fn }`
@@ -14,7 +14,7 @@
 ---@field checkbox_allowed_values? string[] Values cycled by checkbox columns, defaults to `{ '[ ]', '[X]' }`
 ---@field skip_archived_trees? boolean Ignore headlines tagged `ARCHIVE`, defaults to true
 ---@field write_summaries? boolean Write computed summaries into existing parent properties, defaults to false
----@field agenda_columns_initially? boolean Show the agenda as a column view when it is first opened, defaults to false
+---@field agenda_columns_initially? boolean Show every agenda command as a column view instead of its normal rendering, defaults to false
 ---@field prefix? string Prefix used for the mappings, defaults to the nvim-orgmode prefix
 ---@field mappings table Mappings of the plugin
 local M = {}

@@ -118,4 +118,59 @@ describe('Agenda column view scope', function()
 
     columnview.setup({ agenda_columns_initially = false })
   end)
+
+  it('starts the TODO list in columns view when configured', function()
+    local orgmode = require('orgmode')
+    helpers.create_agenda_file({
+      '#+COLUMNS: %ITEM',
+      '',
+      '* TODO Todo columns probe',
+    })
+
+    local columnview = require('org-columnview')
+    columnview.setup({ agenda_columns_initially = true })
+
+    local agenda = orgmode.agenda
+    agenda:todos():wait()
+
+    assert.is_not_nil(agenda.views[1].columns)
+    local titles = vim.tbl_map(function(headline)
+      return (headline:get_title())
+    end, agenda.views[1].headlines or {})
+    assert.is_truthy(vim.tbl_contains(titles, 'Todo columns probe'))
+
+    columnview.setup({ agenda_columns_initially = false })
+  end)
+
+  it('starts a custom agenda command in columns view when configured', function()
+    local orgmode = require('orgmode')
+    helpers.create_agenda_file({
+      '#+COLUMNS: %ITEM',
+      '',
+      '* TODO Custom columns probe',
+    }, {
+      org_agenda_custom_commands = {
+        b = {
+          description = 'probe',
+          types = {
+            { type = 'tags_todo', match = '+TODO="TODO"' },
+          },
+        },
+      },
+    })
+
+    local columnview = require('org-columnview')
+    columnview.setup({ agenda_columns_initially = true })
+
+    local agenda = orgmode.agenda
+    agenda:open_by_key('b'):wait()
+
+    assert.is_not_nil(agenda.views[1].columns)
+    local titles = vim.tbl_map(function(headline)
+      return (headline:get_title())
+    end, agenda.views[1].headlines or {})
+    assert.is_truthy(vim.tbl_contains(titles, 'Custom columns probe'))
+
+    columnview.setup({ agenda_columns_initially = false })
+  end)
 end)

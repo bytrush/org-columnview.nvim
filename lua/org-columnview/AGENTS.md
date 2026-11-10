@@ -25,3 +25,9 @@
 - `compat.input_with_completion` uses a `customlist,v:lua...` callback and
   requires `_G.orgmode`; tests can stub `vim.fn.input` and ignore the table
   argument. Keep prompts synchronous unless the whole call chain is promise-based.
+- `agenda_columns_initially` wraps `Agenda.prepare_and_render`, the single
+  choke point shared by `open_view` (agenda/todos/tags/search) and custom
+  command actions. Skip the wrapper when the pending view is already the
+  columns type and use `_org_columnview_initializing` to prevent re-entry.
+  Emacs does the equivalent in `org-agenda-finalize`, so the option applies to
+  every agenda command, not only `Agenda.agenda`.
