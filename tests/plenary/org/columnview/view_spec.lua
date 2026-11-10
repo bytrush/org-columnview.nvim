@@ -480,6 +480,112 @@ describe('ColumnView', function()
     assert.is_nil(view.rows[1].headline:get_own_properties()['todo_all'])
   end)
 
+  it('uses a configurable truncation marker', function()
+    local columnview_config = require('org-columnview.config')
+    local Cells = require('org-columnview.cells')
+    local original = columnview_config.opts.ellipsis
+
+    columnview_config.opts.ellipsis = '~'
+    assert.are.equal('abc~', Cells.fit('abcdef', 4))
+    columnview_config.opts.ellipsis = '…'
+    assert.are.equal('ab…', Cells.fit('abcdef', 4))
+
+    columnview_config.opts.ellipsis = original
+  end)
+
+  it('uses configured checkbox values for checkbox summaries', function()
+    local columnview_config = require('org-columnview.config')
+    local original = columnview_config.opts.checkbox_allowed_values
+    columnview_config.opts.checkbox_allowed_values = { '[ ]', '[X]', '[-]' }
+
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %10Approved{X}',
+      ':approved: [X]',
+      ':END:',
+    })
+
+    assert.are.same({ '[ ]', '[X]', '[-]' }, view:_allowed_values_for(view.columns[1]))
+
+    view.current_row = 1
+    view.current_col = 1
+    view:toggle_or_quit()
+    assert.are.equal('[-]', view.rows[1].headline:get_property('approved'))
+
+    view:toggle_or_quit()
+    assert.are.equal('[ ]', view.rows[1].headline:get_property('approved'))
+    columnview_config.opts.checkbox_allowed_values = original
+  end)
+
+  it('accepts arbitrary values when PROPERTY_ALL contains :ETC', function()
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %10Owner',
+      ':Owner_ALL: Alice,Bob,:ETC',
+      ':Owner: Alice',
+      ':END:',
+    })
+
+    assert.are.same({ 'Alice', 'Bob' }, view.allowed_values['OWNER_ALL'])
+    assert.is_true(view.unrestricted_values['OWNER_ALL'])
+
+    view.current_row = 1
+    view.current_col = 1
+
+    local original_input = vim.fn.input
+    local original_select = vim.ui.select
+    vim.fn.input = function()
+      return 'Carol'
+    end
+    vim.ui.select = function()
+      error('select must not be used for unrestricted values')
+    end
+    view:edit_value()
+    vim.fn.input = original_input
+    vim.ui.select = original_select
+
+    assert.are.equal('Carol', view.rows[1].headline:get_property('owner'))
+  end)
+
+  it('skips archived trees by default', function()
+    local lines = {
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %25ITEM %10Owner',
+      ':END:',
+      '** Live',
+      ':PROPERTIES:',
+      ':Owner: Alice',
+      ':END:',
+      '** Archived  :ARCHIVE:',
+      ':PROPERTIES:',
+      ':Owner: Bob',
+      ':END:',
+      '*** Archived child',
+    }
+    local view = create_view(lines)
+
+    local titles = {}
+    for _, row in ipairs(view.rows) do
+      table.insert(titles, (row.headline:get_title()))
+    end
+    assert.are.same({ 'Parent', 'Live' }, titles)
+
+    local columnview_config = require('org-columnview.config')
+    local original = columnview_config.opts.skip_archived_trees
+    columnview_config.opts.skip_archived_trees = false
+    view = create_view(lines)
+    columnview_config.opts.skip_archived_trees = original
+
+    titles = {}
+    for _, row in ipairs(view.rows) do
+      table.insert(titles, (row.headline:get_title()))
+    end
+    assert.are.same({ 'Parent', 'Live', 'Archived', 'Archived child' }, titles)
+  end)
+
   it('narrows columns that do not have an explicit width', function()
     local view = create_view({
       '* Parent',

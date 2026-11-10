@@ -8,6 +8,7 @@ local Calendar = require('orgmode.objects.calendar')
 local Date = require('orgmode.objects.date')
 local Headline = require('orgmode.files.headline')
 local compat = require('org-columnview.compat')
+local columnview_config = require('org-columnview.config')
 
 local ColumnView = {}
 ColumnView.__index = ColumnView
@@ -25,6 +26,7 @@ function ColumnView:new(opts)
     subtree = opts.subtree or false,
     columns = opts.columns_def.columns or {},
     allowed_values = opts.columns_def.allowed_values or {},
+    unrestricted_values = {},
     rows = {},
     bufnr = opts.bufnr or 0,
     winid = opts.winid or 0,
@@ -86,7 +88,25 @@ function ColumnView:_resolve_allowed_values()
     end
   end
 
+  local previous_unrestricted = self.unrestricted_values or {}
+  local unrestricted = {}
+  for key, values in pairs(resolved) do
+    local filtered = {}
+    for _, value in ipairs(values) do
+      if value == ':ETC' then
+        unrestricted[key] = true
+      else
+        table.insert(filtered, value)
+      end
+    end
+    if previous_unrestricted[key] then
+      unrestricted[key] = true
+    end
+    resolved[key] = filtered
+  end
+
   self.allowed_values = resolved
+  self.unrestricted_values = unrestricted
 end
 
 ---Find the allowed values of a property on the viewed entries, their ancestors
@@ -123,7 +143,9 @@ function ColumnView:_build_rows()
   local function add_headlines(headlines, level)
     for _, hl in ipairs(headlines) do
       local hl_key = hl.file.filename .. ':' .. hl:get_range().start_line
-      if not visited[hl_key] then
+      if columnview_config.skip_archived_trees ~= false and hl:is_archived() then
+        -- Skip the whole archived subtree.
+      elseif not visited[hl_key] then
         visited[hl_key] = true
 
         local row = self:_create_row(hl, level)
@@ -802,6 +824,10 @@ function ColumnView:_allowed_values_for(col)
     return allowed
   end
 
+  if col.summary_type == 'X' or col.summary_type == 'X/' or col.summary_type == 'X%' then
+    return columnview_config.checkbox_allowed_values
+  end
+
   return nil
 end
 
@@ -1202,7 +1228,24 @@ function ColumnView:edit_value()
   -- For regular property columns, use input with allowed values completion
   local prop_name = col.name
   local current_val = cell.value
-  local allowed = self.allowed_values[col.name .. '_ALL']
+  local key = col.name .. '_ALL'
+  local allowed = self.allowed_values[key]
+
+  if self.unrestricted_values[key] then
+    local input = compat.input_with_completion(
+      ('Edit %s: '):format(col.title or col.name),
+      current_val,
+      allowed or {}
+    )
+    if input and vim.trim(input) ~= '' then
+      self:_write(function()
+        headline:set_property(prop_name, input)
+      end)
+      cell.value = self:_get_cell_value(headline, col)
+      self:refresh()
+    end
+    return
+  end
 
   if allowed and #allowed > 0 then
     -- Use vim.ui.select for selection from allowed values (Neovim 0.6+)
@@ -1269,22 +1312,18 @@ function ColumnView:toggle_or_quit()
   end
 
   local col = cell.column
-  local headline = row.headline
 
-  -- Toggle a checkbox value. Only property columns can hold checkboxes; the
-  -- ITEM column is the headline title and must not cycle the TODO state here.
-  if not col.is_special and cell.value:match('^%s*%[.%]') then
+  -- Toggle a checkbox value. The ITEM column is the headline title, not a
+  -- property, so it must not be treated as a checkbox here.
+  if col.name ~= 'ITEM' and cell.value:match('^%s*%[[ xX%-]%]') then
     if not self:_check_computed(cell) then
       return
     end
-    local new_val = cell.value:gsub('%[(.)%]', function(inner)
-      return inner:upper() == 'X' and '[ ]' or '[X]'
-    end, 1)
-    self:_write(function()
-      headline:set_property(col.name:lower(), new_val)
-    end)
-    cell.value = new_val
-    self:refresh()
+    local allowed = self:_allowed_values_for(col) or columnview_config.checkbox_allowed_values
+    local new_val = compat.next_allowed_value(allowed, cell.value)
+    if new_val then
+      self:_set_cell_value(cell, new_val)
+    end
     return
   end
 

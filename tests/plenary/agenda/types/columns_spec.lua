@@ -1068,6 +1068,81 @@ describe('Agenda Columns Type', function()
     assert.are.equal('Carol', updated:get_property('reviewer'))
   end)
 
+  it('uses configured checkbox values for checkbox summaries', function()
+    local columnview_config = require('org-columnview.config')
+    local original = columnview_config.opts.checkbox_allowed_values
+    columnview_config.opts.checkbox_allowed_values = { '[ ]', '[X]', '[-]' }
+
+    local view = build_view({
+      '* Checkbox summary probe',
+      ':PROPERTIES:',
+      ':Approved: [X]',
+      ':END:',
+    }, {
+      overriding_columns_format = '%25ITEM %Approved{X}',
+    })
+
+    local column = view.columns[column_index(view, 'APPROVED')]
+    assert.are.same({ '[ ]', '[X]', '[-]' }, view:_allowed_values_for(column))
+
+    view.current_row = headline_index(view, 'Checkbox summary probe')
+    view.current_col = column_index(view, 'APPROVED')
+    view:toggle_or_quit()
+    local updated = view.headlines[headline_index(view, 'Checkbox summary probe')]
+    assert.are.equal('[-]', updated:get_property('approved'))
+    columnview_config.opts.checkbox_allowed_values = original
+  end)
+
+  it('accepts arbitrary values when PROPERTY_ALL contains :ETC', function()
+    local view = build_view({
+      '* Unrestricted probe',
+      ':PROPERTIES:',
+      ':Probe_ALL: Alice,Bob,:ETC',
+      ':Probe: Alice',
+      ':END:',
+    }, {
+      overriding_columns_format = '%25ITEM %Probe',
+    })
+
+    assert.are.same({ 'Alice', 'Bob' }, view.allowed_values['PROBE_ALL'])
+    assert.is_true(view.unrestricted_values['PROBE_ALL'])
+
+    view.current_row = headline_index(view, 'Unrestricted probe')
+    view.current_col = column_index(view, 'PROBE')
+    local original_input = vim.fn.input
+    local original_select = vim.ui.select
+    vim.fn.input = function()
+      return 'Carol'
+    end
+    vim.ui.select = function()
+      error('select must not be used for unrestricted values')
+    end
+    view:edit_value()
+    vim.fn.input = original_input
+    vim.ui.select = original_select
+
+    local updated = view.headlines[headline_index(view, 'Unrestricted probe')]
+    assert.are.equal('Carol', updated:get_property('probe'))
+  end)
+
+  it('skips archived trees by default', function()
+    local view = build_view({
+      '* Live probe',
+      '* Archived probe  :ARCHIVE:',
+      '** Archived child probe',
+    }, {
+      overriding_columns_format = '%25ITEM',
+    })
+
+    local titles = {}
+    for _, headline in ipairs(view.headlines) do
+      table.insert(titles, (headline:get_title()))
+    end
+    assert.is_truthy(vim.tbl_contains(titles, 'Live probe'))
+    assert.is_falsy(vim.tbl_contains(titles, 'Archived probe'))
+    assert.is_falsy(vim.tbl_contains(titles, 'Archived child probe'))
+  end)
+
   it('warns when cycling a property without allowed values', function()
     local view = build_view({
       '* Plain task',

@@ -164,6 +164,9 @@ Legacy formats may still contain a second brace group with inline values or a
 writes the values to `PROPERTY_ALL` and drops the brace on the next format
 change. Inline allowed values are not portable to Emacs.
 
+Add `:ETC` to a `PROPERTY_ALL` list to mark the values as suggestions rather
+than a closed set. Cycling skips `:ETC`, while `e` accepts arbitrary input.
+
 Special column names: `ITEM`, `CLOCKSUM`, `CLOCKSUM_T`, `AGE`, `TAGS`,
 `ALLTAGS`, `TODO`, `PRIORITY`, `CATEGORY`, `SCHEDULED`, `DEADLINE`, `CLOSED`,
 `TIMESTAMP`, `TIMESTAMP_IA`, `FILE` and `BLOCKED`.
@@ -206,6 +209,12 @@ require('org-columnview').setup({
   summary_types = {},
   -- Functions that return allowed values for a property, or nil.
   allowed_value_functions = {},
+  -- Marker appended to truncated cells.
+  ellipsis = '…',
+  -- Values cycled by checkbox summary columns.
+  checkbox_allowed_values = { '[ ]', '[X]' },
+  -- Ignore trees tagged ARCHIVE.
+  skip_archived_trees = true,
   -- Prefix used for the mappings, defaults to the nvim-orgmode prefix
   prefix = nil,
   mappings = {

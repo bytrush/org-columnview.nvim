@@ -159,6 +159,7 @@ function OrgAgendaColumnsType:new(opts)
     cells = Cells:new(),
     columns = {},
     allowed_values = {},
+    unrestricted_values = {},
     headlines = {},
     _provided_headlines = opts.headlines and vim.tbl_map(function(headline)
       return {
@@ -240,7 +241,25 @@ function OrgAgendaColumnsType:_resolve_allowed_values()
     end
   end
 
+  local previous_unrestricted = self.unrestricted_values or {}
+  local unrestricted = {}
+  for key, values in pairs(resolved) do
+    local filtered = {}
+    for _, value in ipairs(values) do
+      if value == ':ETC' then
+        unrestricted[key] = true
+      else
+        table.insert(filtered, value)
+      end
+    end
+    if previous_unrestricted[key] then
+      unrestricted[key] = true
+    end
+    resolved[key] = filtered
+  end
+
   self.allowed_values = resolved
+  self.unrestricted_values = unrestricted
 end
 
 ---Find the allowed values of a property on the collected headlines, their
@@ -462,7 +481,10 @@ function OrgAgendaColumnsType:_collect_headlines()
   self.headlines = {}
   for _, orgfile in ipairs(self.files:all()) do
     for i, headline in ipairs(orgfile:get_opened_headlines()) do
-      if self:_matches_filters(headline) then
+      if
+        (columnview_config.skip_archived_trees == false or not headline:is_archived())
+        and self:_matches_filters(headline)
+      then
         headline.index = i
         table.insert(self.headlines, headline)
       end
@@ -858,6 +880,10 @@ function OrgAgendaColumnsType:_allowed_values_for(col)
   if allowed and #allowed > 0 then
     return allowed
   end
+
+  if col.summary_type == 'X' or col.summary_type == 'X/' or col.summary_type == 'X%' then
+    return columnview_config.checkbox_allowed_values
+  end
   return nil
 end
 
@@ -1061,14 +1087,18 @@ function OrgAgendaColumnsType:toggle_or_quit()
   if not headline or not col or col.is_special then
     return
   end
-  local value = self:_cell_value(headline, col)
-  if not value:match('^%s*%[.%]') then
+  if col.name == 'ITEM' then
     return
   end
-  local new_val = value:gsub('%[(.)%]', function(inner)
-    return inner:upper() == 'X' and '[ ]' or '[X]'
-  end, 1)
-  self:_apply_value(headline, col, new_val)
+  local value = self:_cell_value(headline, col)
+  if not value:match('^%s*%[[ xX%-]%]') then
+    return
+  end
+  local allowed = self:_allowed_values_for(col) or columnview_config.checkbox_allowed_values
+  local new_val = compat.next_allowed_value(allowed, value)
+  if new_val then
+    self:_apply_value(headline, col, new_val)
+  end
 end
 
 ---Edit the SCHEDULED or DEADLINE date with the calendar, like Emacs'
@@ -1148,7 +1178,19 @@ function OrgAgendaColumnsType:edit_value()
   end
 
   local current_val = self:_cell_value(headline, col)
-  local allowed = self.allowed_values[col.name .. '_ALL']
+  local key = col.name .. '_ALL'
+  local allowed = self.allowed_values[key]
+  if self.unrestricted_values[key] then
+    local input = compat.input_with_completion(
+      ('Edit %s: '):format(col.title or col.name),
+      current_val,
+      allowed or {}
+    )
+    if input and vim.trim(input) ~= '' then
+      self:_apply_value(headline, col, input)
+    end
+    return
+  end
   if allowed and #allowed > 0 then
     local items = vim.deepcopy(allowed)
     table.insert(items, 1, '')

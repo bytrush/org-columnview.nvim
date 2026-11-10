@@ -218,6 +218,28 @@ function M.extract_link(text)
   return text:match('([%a][%w+.-]*:[^%s]+)')
 end
 
+---The next value in a list, wrapping around. An unknown current value selects
+---the first entry, like Emacs' `org-columns-next-allowed-value`.
+---@param values string[]
+---@param current string
+---@return string|nil
+function M.next_allowed_value(values, current)
+  if not values or #values == 0 then
+    return nil
+  end
+  local index
+  for i, value in ipairs(values) do
+    if value == current then
+      index = i
+      break
+    end
+  end
+  if not index then
+    return values[1]
+  end
+  return values[index % #values + 1]
+end
+
 ---The next TODO state, using the fast access menu when it is configured.
 ---@param todos OrgTodoKeywords
 ---@param current_state string|nil

@@ -44,6 +44,7 @@
 ---@field subtree boolean
 ---@field columns OrgColumnSpec[]
 ---@field allowed_values table<string, string[]>
+---@field unrestricted_values table<string, boolean>
 ---@field rows OrgColumnViewRow[]
 ---@field cells OrgColumnCells
 ---@field bufnr number

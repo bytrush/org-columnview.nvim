@@ -230,19 +230,30 @@ end
 function Cells.fit(text, width)
   local display_width = vim.api.nvim_strwidth(text)
   if display_width > width then
+    local marker = columnview_config.ellipsis or '…'
+    local marker_width = vim.api.nvim_strwidth(marker)
+    if marker_width > width then
+      marker = vim.fn.strcharpart(marker, 0, width)
+      marker_width = vim.api.nvim_strwidth(marker)
+      if marker_width > width then
+        marker = ''
+        marker_width = 0
+      end
+    end
+
     local truncated = ''
     local used = 0
     local char_count = vim.fn.strchars(text)
     for i = 0, char_count - 1 do
       local char = vim.fn.strcharpart(text, i, 1)
       local char_width = vim.api.nvim_strwidth(char)
-      if used + char_width > width - 1 then
+      if used + char_width > width - marker_width then
         break
       end
       used = used + char_width
       truncated = truncated .. char
     end
-    text = truncated .. '…'
+    text = truncated .. marker
     display_width = vim.api.nvim_strwidth(text)
   end
   return text .. string.rep(' ', width - display_width)

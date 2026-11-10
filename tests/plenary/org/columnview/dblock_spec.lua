@@ -310,6 +310,26 @@ describe('Column view dynamic block', function()
     assert.are.same(before, lines(file))
   end)
 
+  it('skips archived trees', function()
+    local file = create({
+      '#+COLUMNS: %20ITEM',
+      '',
+      '* Live probe',
+      '* Archived probe  :ARCHIVE:',
+      '** Archived child probe',
+    }, 'dblock-archive.org')
+    vim.api.nvim_win_set_cursor(0, { 2, 0 })
+
+    local data = dblock.collect({ id = 'global' })
+    local titles = {}
+    for _, entry in ipairs(data.entries) do
+      table.insert(titles, (entry.headline:get_title()))
+    end
+    assert.is_truthy(vim.tbl_contains(titles, 'Live probe'))
+    assert.is_falsy(vim.tbl_contains(titles, 'Archived probe'))
+    assert.is_falsy(vim.tbl_contains(titles, 'Archived child probe'))
+  end)
+
   it('updates every block in the buffer', function()
     local file = sample_file('dblock-all.org')
     vim.api.nvim_win_set_cursor(0, { 7, 0 })

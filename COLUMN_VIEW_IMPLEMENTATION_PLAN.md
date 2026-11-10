@@ -381,10 +381,10 @@ parity nice-to-haves.
 | 7.1.7 | Recompute summaries in contributing buffers (`org-agenda-columns-compute-summary-properties`) | `org-colview.el:1883` | — | [TODO] |
 | 7.1.8 | Appointment duration counts toward `Effort` (`org-agenda-columns-add-appointments-to-effort-sum`) | `org-colview.el:1883` | — | [TODO] |
 | 7.1.9 | Start the agenda in column view (`org-agenda-view-columns-initially`) | `org-agenda.el:2103` | — | [TODO] |
-| 7.1.10 | Skip archived trees (`org-columns-skip-archived-trees`) | `org.el:4142` | — | [TODO] |
+| 7.1.10 | Skip archived trees (`org-columns-skip-archived-trees`) | `org.el:4142` | `ARCHIVE`-tagged trees are skipped by default; `skip_archived_trees = false` re-enables them (`view.lua:146`, `agenda.lua:485`, `dblock.lua:251`) | [DONE] |
 | 7.1.11 | Global column view via prefix argument (`C-u C-c C-x C-c`) | `org-colview.el:887` | a count prefix (`1<prefix>xc`, the Vim equivalent of `C-u`) opens the whole-file view (`init.lua:35`, `mappings.lua:179`) | [DONE] |
-| 7.1.12 | Configurable truncation marker (`org-columns-ellipses`, default `..`) | `org.el:3221` | hardcoded `…`, `lua/org-columnview/cells.lua:229` | [TODO] |
-| 7.1.13 | Configurable checkbox values (`org-columns-checkbox-allowed-values`) | `org-colview.el:62` | hardcoded `[ ]`/`[X]` | [TODO] |
+| 7.1.12 | Configurable truncation marker (`org-columns-ellipses`, default `..`) | `org.el:3221` | `ellipsis` option, default `..` (`cells.lua:233`) | [DONE] |
+| 7.1.13 | Configurable checkbox values (`org-columns-checkbox-allowed-values`) | `org-colview.el:62` | `checkbox_allowed_values` option, default `[ ]`/`[X]` (`view.lua:828`, `agenda.lua:885`) | [DONE] |
 
 ### 7.2 Editing semantics that diverge from Emacs
 
@@ -395,9 +395,9 @@ parity nice-to-haves.
 | 7.2.3 | `e` on `SCHEDULED`/`DEADLINE` | opens the date editor | opens the nvim-orgmode calendar and updates or clears the plan date (`view.lua:1050`, `agenda.lua:1055`) | [DONE] |
 | 7.2.4 | `n`/`p` on `SCHEDULED`/`DEADLINE` | shifts the date by ±1 day (`org-colview-construct-allowed-dates`) | shifts the date by ±1 day and removes `CLOSED` (`view.lua:840`, `agenda.lua:952`) | [DONE] |
 | 7.2.5 | `n`/`p`, `1`–`0` on a property without allowed values | error "Allowed values for this property have not been defined" | reports the error and leaves the property untouched (`view.lua:758`, `agenda.lua:844`) | [DONE] |
-| 7.2.6 | `:ETC` in a `PROP_ALL` list (means "other values allowed") | marks the first value `org-unrestricted`, prompt accepts anything | not supported | [TODO] |
+| 7.2.6 | `:ETC` in a `PROP_ALL` list (means "other values allowed") | marks the first value `org-unrestricted`, prompt accepts anything | `:ETC` is removed from the cycle and `e` prompts with completion but accepts arbitrary input (`view.lua:1234`, `agenda.lua:1183`) | [DONE] |
 | 7.2.7 | `edit_allowed` storage format | raw string, as typed | comma separated list | [TODO] |
-| 7.2.8 | Checkbox toggle (`C-c C-c`) | toggles whenever the raw value matches `\[[ xX-]\]` | also requires a non-special column, `lua/org-columnview/view.lua:1131` | [TODO] |
+| 7.2.8 | Checkbox toggle (`C-c C-c`) | toggles whenever the raw value matches `\[[ xX-]\]` | toggles `[ ]`/`[X]`/`[-]` through the configured allowed values; ITEM is excluded (`view.lua:1304`, `agenda.lua:1084`) | [DONE] |
 
 ### 7.3 Format / parser gaps
 
@@ -509,7 +509,9 @@ Ordered by value per effort; update the checkbox when an item ships.
 - [x] 7.1.1, 7.1.2 `BEGIN_COLUMNVIEW` block
 - [ ] 7.1.6–7.1.9 agenda parity
 - [ ] 7.1.3, 7.4.3 summary write-back
-- [ ] 7.1.12, 7.1.13, 7.2.6–7.2.8 small config/behaviour items
+- [ ] 7.2.7 `edit_allowed` storage format
+- [x] 7.1.10 skip archived trees
+- [x] 7.1.12, 7.1.13, 7.2.6, 7.2.8 small config/behaviour items
 
 ---
 

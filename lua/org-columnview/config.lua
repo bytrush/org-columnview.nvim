@@ -10,6 +10,9 @@
 ---@field modify_value_for_display_function? fun(column: string|nil, value: string): string|nil Called to modify the displayed value
 ---@field summary_types? table<string, any> Custom summary operators, mapping the operator name to a function `(values, format)` or `{ summarize = fn, collect = fn }`
 ---@field allowed_value_functions? (fun(property: string): string[]|nil)[] Functions that supply allowed values before `PROPERTY_ALL` is consulted
+---@field ellipsis? string Marker appended to truncated cell values, defaults to `..`
+---@field checkbox_allowed_values? string[] Values cycled by checkbox columns, defaults to `{ '[ ]', '[X]' }`
+---@field skip_archived_trees? boolean Ignore headlines tagged `ARCHIVE`, defaults to true
 ---@field prefix? string Prefix used for the mappings, defaults to the nvim-orgmode prefix
 ---@field mappings table Mappings of the plugin
 local M = {}
@@ -21,6 +24,9 @@ local M = {}
 ---@field modify_value_for_display_function? fun(column: string|nil, value: string): string|nil
 ---@field summary_types? table<string, any>
 ---@field allowed_value_functions? (fun(property: string): string[]|nil)[]
+---@field ellipsis? string
+---@field checkbox_allowed_values? string[]
+---@field skip_archived_trees? boolean
 ---@field prefix? string
 ---@field mappings? table
 
@@ -34,6 +40,9 @@ M.defaults = {
   modify_value_for_display_function = nil,
   summary_types = {},
   allowed_value_functions = {},
+  ellipsis = '…',
+  checkbox_allowed_values = { '[ ]', '[X]' },
+  skip_archived_trees = true,
   prefix = nil,
   mappings = {
     org_columns = '<prefix>xc',

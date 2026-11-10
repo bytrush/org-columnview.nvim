@@ -8,6 +8,7 @@ local Cells = require('org-columnview.cells')
 local Parser = require('org-columnview.parser')
 local Summary = require('org-columnview.summary')
 local compat = require('org-columnview.compat')
+local columnview_config = require('org-columnview.config')
 local utils = require('orgmode.utils')
 
 ---@class OrgColumnViewDblockParams
@@ -247,6 +248,10 @@ end
 ---@param params OrgColumnViewDblockParams
 ---@return boolean
 local function matches_filters(headline, params)
+  if columnview_config.skip_archived_trees ~= false and headline:is_archived() then
+    return false
+  end
+
   local maxlevel = as_number(params.maxlevel)
   if maxlevel and headline:get_level() > maxlevel then
     return false
