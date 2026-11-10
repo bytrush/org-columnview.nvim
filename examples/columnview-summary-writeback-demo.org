@@ -1,0 +1,36 @@
+# Manual test for summary write-back (7.1.3 and 7.4.3)
+#
+# 1. Load the example settings:
+#      :luafile examples/columnview-summary-writeback-setup.lua
+# 2. Open this file, put the cursor on "Project", and run <Leader>oxc.
+# 3. Quit the view with q and inspect Project's property drawer:
+#      SCORE must be 5.00 (the first SCORE column is the formatted sum).
+#      MISSING must not be created.
+# 4. Change a child SCORE, reopen the view, and check that Project's SCORE
+#    is recomputed.
+# 5. The view modifies the buffer only. Use :w to save or :e! to discard.
+#
+# The first column using a property owns the write-back. The second SCORE
+# column is present to show that duplicate columns do not create extra writes.
+
+#+TITLE: Summary write-back demo
+#+COLUMNS: %20ITEM %10SCORE(Sum){+;%.2f} %10SCORE(Min){min} %10MISSING{+}
+
+* Project
+:PROPERTIES:
+:COLUMNS: %20ITEM %10SCORE(Sum){+;%.2f} %10SCORE(Min){min} %10MISSING{+}
+:score: 7.00
+:END:
+Body of the project.
+
+** Child A
+:PROPERTIES:
+:SCORE: 4
+:MISSING: 4
+:END:
+
+** Child B
+:PROPERTIES:
+:SCORE: 3
+:MISSING: 7
+:END:

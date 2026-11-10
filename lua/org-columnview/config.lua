@@ -29,6 +29,7 @@ local M = {}
 ---@field ellipsis? string
 ---@field checkbox_allowed_values? string[]
 ---@field skip_archived_trees? boolean
+---@field write_summaries? boolean
 ---@field prefix? string
 ---@field mappings? table
 
@@ -45,6 +46,7 @@ M.defaults = {
   ellipsis = '…',
   checkbox_allowed_values = { '[ ]', '[X]' },
   skip_archived_trees = true,
+  write_summaries = false,
   prefix = nil,
   mappings = {
     org_columns = '<prefix>xc',

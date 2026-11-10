@@ -374,7 +374,7 @@ parity nice-to-haves.
 |---|---------|-----------------|---------------|--------|
 | 7.1.1 | `BEGIN_COLUMNVIEW` dynamic block (`org-columns-insert-dblock`) — export the view as a static table | `org-colview.el:1553` (`org-dblock-write:columnview`), `org-colview.el:1729` | `dblock.lua` inserts and updates aligned `#+BEGIN: columnview` tables; commands in `init.lua:397` | [DONE] |
 | 7.1.2 | Block parameters `:id`, `:format`, `:hlines`, `:indent`, `:match`, `:maxlevel`, `:skip-empty-rows`, `:vlines`, `:link`, `:exclude-tags`, `:formatter` | `org-colview.el:1553` | all parameters supported; `:formatter` accepts a Lua function through the API (`dblock.lua:321`) | [DONE] |
-| 7.1.3 | Summary write-back into the parent's property drawer (`org-columns-compute-all`, `org-compute-property-at-point`) | `org-colview.el:1364`, `org.el:13994` | summaries are computed on the fly only; see §1.3 [DROPPED] | [TODO] (revisit the [DROPPED] decision) |
+| 7.1.3 | Summary write-back into the parent's property drawer (`org-columns-compute-all`, `org-compute-property-at-point`) | `org-colview.el:1364`, `org.el:13994` | opt-in `write_summaries`; writes the first column per property into existing parent properties (`view.lua:141`) | [DONE] |
 | 7.1.4 | User-defined summary operators (`org-columns-summary-types`) | `org-colview.el:88` | `summary_types` accepts summarize or summarize/collect definitions; custom operators are parsed, completed and collected (`summary.lua:44`, `parser.lua:277`, `cells.lua:46`) | [DONE] |
 | 7.1.5 | Allowed-values hook (`org-property-allowed-value-functions`) | `org.el:14007` | `allowed_value_functions` are consulted before `PROPERTY_ALL` (`compat.lua:117`, `config.lua:36`) | [DONE] |
 | 7.1.6 | Per-date-line summaries in a normal agenda (`org-agenda-colview-summarize`) | `org-colview.el:1819` | agenda column view is one flat table, `lua/org-columnview/agenda.lua:441` | [TODO] |
@@ -477,7 +477,7 @@ Parity plan (revisit with 7.1.4):
 |---|------|-----------------|-------------------|--------|
 | 7.4.1 | `X/` and `X%` | also count `[n/n]` and `[100%]` as done | `X/` counts `[n/n]`, `X%` counts `[100%]`; both count cookies in the denominator (`summary.lua:283`) | [DONE] |
 | 7.4.2 | `@min`/`@max`/`@mean` (age) | age = `now - timestamp` in minutes, or a duration | Org timestamps are measured from now; numbers and durations are used as-is (`summary.lua:339`) | [DONE] |
-| 7.4.3 | Summary values stored in the drawer | written for the first column using the property | never written back | [TODO] (same as 7.1.3) |
+| 7.4.3 | Summary values stored in the drawer | written for the first column using the property | writes the first column per property when `write_summaries` is enabled (`view.lua:141`) | [DONE] |
 
 ### 7.5 Scope and UX differences
 
@@ -508,7 +508,7 @@ Ordered by value per effort; update the checkbox when an item ships.
 - [x] 7.3.2 Emacs-compatible format grammar (re-validate alongside 7.1.4)
 - [x] 7.1.1, 7.1.2 `BEGIN_COLUMNVIEW` block
 - [ ] 7.1.6–7.1.9 agenda parity
-- [ ] 7.1.3, 7.4.3 summary write-back
+- [x] 7.1.3, 7.4.3 summary write-back
 - [x] 7.2.7 `edit_allowed` storage format
 - [x] 7.1.10 skip archived trees
 - [x] 7.1.12, 7.1.13, 7.2.6, 7.2.8 small config/behaviour items

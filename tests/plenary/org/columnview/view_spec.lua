@@ -506,6 +506,74 @@ describe('ColumnView', function()
     assert.is_nil(view.rows[1].headline:get_own_properties()['todo_all'])
   end)
 
+  it('writes computed summaries into existing parent properties', function()
+    local columnview_config = require('org-columnview.config')
+    local original = columnview_config.opts.write_summaries
+    columnview_config.opts.write_summaries = true
+
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %20ITEM %10Score{+;%.2f}',
+      ':Score: 0',
+      ':END:',
+      '** One',
+      ':PROPERTIES:',
+      ':Score: 2',
+      ':END:',
+      '** Two',
+      ':PROPERTIES:',
+      ':Score: 3',
+      ':END:',
+    })
+    view:open()
+
+    assert.are.equal('5.00', view.rows[1].headline:get_property('Score', false))
+    assert.are.equal('5.00', view:_cell_content(view.rows[1].cells[2]))
+    view:quit()
+    columnview_config.opts.write_summaries = original
+  end)
+
+  it('does not create a missing summary property', function()
+    local columnview_config = require('org-columnview.config')
+    local original = columnview_config.opts.write_summaries
+    columnview_config.opts.write_summaries = true
+
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %20ITEM %10Score{+}',
+      ':END:',
+      '** One',
+      ':PROPERTIES:',
+      ':Score: 2',
+      ':END:',
+    })
+    view:open()
+
+    assert.is_nil(view.rows[1].headline:get_property('Score', false))
+    view:quit()
+    columnview_config.opts.write_summaries = original
+  end)
+
+  it('does not write summaries unless enabled', function()
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %20ITEM %10Score{+}',
+      ':Score: 0',
+      ':END:',
+      '** One',
+      ':PROPERTIES:',
+      ':Score: 2',
+      ':END:',
+    })
+    view:open()
+
+    assert.are.equal('0', view.rows[1].headline:get_property('Score', false))
+    view:quit()
+  end)
+
   it('uses a configurable truncation marker', function()
     local columnview_config = require('org-columnview.config')
     local Cells = require('org-columnview.cells')

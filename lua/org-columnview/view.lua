@@ -133,6 +133,55 @@ function ColumnView:_find_allowed_values(prop_name)
   return nil
 end
 
+---Write computed summaries into existing parent properties, like Emacs'
+---`org-columns-compute-all`. Only the first column using a property updates it,
+---and only when the property already exists on the entry.
+---@private
+---@return boolean wrote_any
+function ColumnView:_write_summaries()
+  if not columnview_config.write_summaries then
+    return false
+  end
+
+  local first_column = {}
+  for index, col in ipairs(self.columns) do
+    if col.summary_type and not first_column[col.name] then
+      first_column[col.name] = index
+    end
+  end
+  if vim.tbl_isempty(first_column) then
+    return false
+  end
+
+  local updates = {}
+  for _, row in ipairs(self.rows) do
+    for name, index in pairs(first_column) do
+      local cell = row.cells[index]
+      if cell and cell.is_computed and cell.summary then
+        local current = row.headline:get_property(name:lower(), false)
+        if current ~= nil and vim.trim(current) ~= vim.trim(cell.summary) then
+          table.insert(updates, {
+            headline = row.headline,
+            property = name:lower(),
+            value = cell.summary,
+          })
+        end
+      end
+    end
+  end
+
+  if #updates == 0 then
+    return false
+  end
+
+  self:_write(function()
+    for _, update in ipairs(updates) do
+      update.headline:set_property(update.property, update.value)
+    end
+  end)
+  return true
+end
+
 function ColumnView:_build_rows()
   self.rows = {}
   self._headline_to_row = {}
@@ -239,6 +288,10 @@ function ColumnView:open()
   vim.bo[self.bufnr].modifiable = false
   vim.wo[self.winid].cursorline = true
   self:_setup_mappings()
+  if self:_write_summaries() then
+    self:_reload_headlines()
+    self:_build_rows()
+  end
   self:_render()
 
   self._leave_autocmd_id = vim.api.nvim_create_autocmd({ 'WinLeave', 'BufLeave' }, {
@@ -277,6 +330,9 @@ end
 function ColumnView:_cell_content(cell)
   local value = Cells.display_value(cell.column, cell.value)
   if not cell.summary then
+    return value
+  end
+  if value == cell.summary then
     return value
   end
   local summary_text = 'Σ=' .. cell.summary
@@ -1520,6 +1576,10 @@ function ColumnView:refresh()
   -- so that every row keeps rendering at its new position.
   self:_reload_headlines()
   self:_build_rows()
+  if self:_write_summaries() then
+    self:_reload_headlines()
+    self:_build_rows()
+  end
   self:_render()
 end
 

@@ -185,6 +185,10 @@ the displayed cell values, e.g. `{+;%.2f}` or `{min;%.1f}`.
 `X/` and `X%` count `[n/n]` and `[100%]` cookies as done. Age summaries
 (`@min`, `@max`, `@mean`) accept Org timestamps or duration values.
 
+With `write_summaries = true`, opening or refreshing the view writes each
+summary into the first column's property on the parent entry. Only existing
+properties are updated; missing properties are not created.
+
 The format is looked up in this order: a `COLUMNS` property on the headline or
 one of its ancestors, the `#+COLUMNS:` keyword in the file, and finally the
 `default_format` option.
@@ -218,6 +222,8 @@ require('org-columnview').setup({
   checkbox_allowed_values = { '[ ]', '[X]' },
   -- Ignore trees tagged ARCHIVE.
   skip_archived_trees = true,
+  -- Write computed summaries into existing parent properties.
+  write_summaries = false,
   -- Prefix used for the mappings, defaults to the nvim-orgmode prefix
   prefix = nil,
   mappings = {
