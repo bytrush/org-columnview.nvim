@@ -536,6 +536,33 @@ describe('Agenda Columns Type', function()
     assert.are.same({ 'Alice', 'Carol' }, view.allowed_values['CURATOR_ALL'])
   end)
 
+  it('stores the allowed values string exactly as typed', function()
+    local view = build_view({
+      '* Allowed string probe',
+      ':PROPERTIES:',
+      ':Status_ALL: ToDo, Done',
+      ':END:',
+    }, {
+      overriding_columns_format = '%25ITEM %Status{Status_ALL}',
+    })
+    view.current_row = headline_index(view, 'Allowed string probe')
+    view.current_col = column_index(view, 'STATUS')
+
+    local original_input = vim.fn.input
+    local prompt_default
+    vim.fn.input = function(_, default)
+      prompt_default = default
+      return 'ToDo, In progress, Done'
+    end
+    view:edit_allowed()
+    vim.fn.input = original_input
+
+    local updated = view.headlines[headline_index(view, 'Allowed string probe')]
+    assert.are.equal('ToDo, Done', prompt_default)
+    assert.are.equal('ToDo, In progress, Done', updated:get_own_properties()['status_all'])
+    assert.are.same({ 'ToDo', 'In progress', 'Done' }, view.allowed_values['STATUS_ALL'])
+  end)
+
   it('refuses to edit allowed values for special columns', function()
     local view = build_view({ '* TODO Special Probe' }, { overriding_columns_format = '%25ITEM %TODO' })
     view.current_row = headline_index(view, 'Special Probe')

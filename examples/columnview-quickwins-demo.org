@@ -1,4 +1,4 @@
-# Quick-wins verification file for 7.1.10, 7.1.12, 7.1.13, 7.2.6, 7.2.8
+# Quick-wins verification file for 7.1.10, 7.1.12, 7.1.13, 7.2.6-7.2.8
 #
 # Before opening this file, load the example settings:
 #   :luafile examples/columnview-quickwins-setup.lua
@@ -14,6 +14,9 @@
 #           cycle through the configured checkbox values.
 #   7.2.6   OWNER_ALL ends in :ETC. n/p cycle only Alice and Bob, while e
 #           accepts a value such as Carol.
+#   7.2.7   Press a on OWNER and enter "Alice Bob" (or "Alice, Bob"). Reopen
+#           the property drawer: the value must be exactly as typed, while
+#           n/p still cycle Alice and Bob.
 #   7.1.10  Open the whole-file view (1<Leader>oxc or cursor before the first
 #           headline) and check that "Archived project" is absent. Set
 #           skip_archived_trees = false in the setup and refresh to see it.

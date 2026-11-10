@@ -396,7 +396,7 @@ parity nice-to-haves.
 | 7.2.4 | `n`/`p` on `SCHEDULED`/`DEADLINE` | shifts the date by ±1 day (`org-colview-construct-allowed-dates`) | shifts the date by ±1 day and removes `CLOSED` (`view.lua:840`, `agenda.lua:952`) | [DONE] |
 | 7.2.5 | `n`/`p`, `1`–`0` on a property without allowed values | error "Allowed values for this property have not been defined" | reports the error and leaves the property untouched (`view.lua:758`, `agenda.lua:844`) | [DONE] |
 | 7.2.6 | `:ETC` in a `PROP_ALL` list (means "other values allowed") | marks the first value `org-unrestricted`, prompt accepts anything | `:ETC` is removed from the cycle and `e` prompts with completion but accepts arbitrary input (`view.lua:1234`, `agenda.lua:1183`) | [DONE] |
-| 7.2.7 | `edit_allowed` storage format | raw string, as typed | comma separated list | [TODO] |
+| 7.2.7 | `edit_allowed` storage format | raw string, as typed | the property is written exactly as typed; the parsed list is used for cycling (`view.lua:1034`, `agenda.lua:1219`) | [DONE] |
 | 7.2.8 | Checkbox toggle (`C-c C-c`) | toggles whenever the raw value matches `\[[ xX-]\]` | toggles `[ ]`/`[X]`/`[-]` through the configured allowed values; ITEM is excluded (`view.lua:1304`, `agenda.lua:1084`) | [DONE] |
 
 ### 7.3 Format / parser gaps
@@ -509,7 +509,7 @@ Ordered by value per effort; update the checkbox when an item ships.
 - [x] 7.1.1, 7.1.2 `BEGIN_COLUMNVIEW` block
 - [ ] 7.1.6–7.1.9 agenda parity
 - [ ] 7.1.3, 7.4.3 summary write-back
-- [ ] 7.2.7 `edit_allowed` storage format
+- [x] 7.2.7 `edit_allowed` storage format
 - [x] 7.1.10 skip archived trees
 - [x] 7.1.12, 7.1.13, 7.2.6, 7.2.8 small config/behaviour items
 

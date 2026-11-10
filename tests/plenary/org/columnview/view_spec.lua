@@ -423,6 +423,32 @@ describe('ColumnView', function()
     )
   end)
 
+  it('stores the allowed values string exactly as typed', function()
+    local view = create_view({
+      '* Parent',
+      ':PROPERTIES:',
+      ':COLUMNS: %10Status{Status_ALL}',
+      ':Status_ALL: ToDo, Done',
+      ':END:',
+    })
+
+    view.current_row = 1
+    view.current_col = 1
+
+    local original_input = vim.fn.input
+    local prompt_default
+    vim.fn.input = function(_, default)
+      prompt_default = default
+      return 'ToDo, In progress, Done'
+    end
+    view:edit_allowed()
+    vim.fn.input = original_input
+
+    assert.are.equal('ToDo, Done', prompt_default)
+    assert.are.equal('ToDo, In progress, Done', view.rows[1].headline:get_own_properties()['status_all'])
+    assert.are.same({ 'ToDo', 'In progress', 'Done' }, view.allowed_values['STATUS_ALL'])
+  end)
+
   it('stores edited allowed values in the first entry when none is defined', function()
     local view = create_view({
       '* Parent',

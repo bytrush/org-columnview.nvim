@@ -135,6 +135,9 @@ change. Inline allowed values are not portable to Emacs.
 Add `:ETC` to a PROPERTY_ALL list to mark the values as suggestions rather
 than a closed set. Cycling skips `:ETC`, while `e` accepts arbitrary input.
 
+Editing the allowed values with `a` stores the string exactly as typed; both
+comma-separated and whitespace-separated lists are parsed for cycling.
+
 Special column names: `ITEM`, `CLOCKSUM`, `CLOCKSUM_T`, `AGE`, `TAGS`,
 `ALLTAGS`, `TODO`, `PRIORITY`, `CATEGORY`, `SCHEDULED`, `DEADLINE`, `CLOSED`,
 `TIMESTAMP`, `TIMESTAMP_IA`, `FILE` and `BLOCKED`.

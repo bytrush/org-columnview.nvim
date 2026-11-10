@@ -1256,17 +1256,35 @@ function OrgAgendaColumnsType:edit_allowed()
     end
   end
 
-  local input = vim.fn.input('Allowed values (comma separated): ', table.concat(current_allowed, ','))
+  local raw_value = target:get_property(prop_key, false)
+  if not raw_value or vim.trim(raw_value) == '' then
+    raw_value = compat.get_keyword_property(target.file, prop_key)
+  end
+  local default_value = table.concat(current_allowed, ',')
+  if raw_value and vim.trim(raw_value) ~= '' then
+    default_value = raw_value
+  end
+
+  local input = vim.fn.input('Allowed values: ', default_value)
   if not input or vim.trim(input) == '' then
     return
   end
 
-  local new_allowed = vim.split(input, ',', { trimempty = true })
-  for i, v in ipairs(new_allowed) do
-    new_allowed[i] = vim.trim(v)
+  local new_allowed = Parser.split_allowed_values(input)
+  local unrestricted = false
+  local filtered = {}
+  for _, value in ipairs(new_allowed) do
+    if value == ':ETC' then
+      unrestricted = true
+    else
+      table.insert(filtered, value)
+    end
   end
+  new_allowed = filtered
 
-  self:_apply_value(target, { name = prop_name, is_special = false }, table.concat(new_allowed, ','))
+  self.allowed_values[prop_name] = new_allowed
+  self.unrestricted_values[prop_name] = unrestricted
+  self:_apply_value(target, { name = prop_name, is_special = false }, input)
   utils.echo_info(('Allowed values for %s: %s'):format(col.name, table.concat(new_allowed, ', ')))
 end
 
