@@ -138,7 +138,7 @@ end
 
 ---The headlines currently shown in the agenda views. Only meaningful when the
 ---current buffer is the agenda buffer.
----@return OrgHeadline[]|nil
+---@return OrgHeadline[]|nil, { date: string, headlines: OrgHeadline[] }[]
 local function get_current_agenda_headlines()
   if not is_agenda_buffer() then
     return nil
@@ -151,17 +151,31 @@ local function get_current_agenda_headlines()
 
   local headlines = {}
   local seen = {}
+  local date_groups = {}
   for _, view in ipairs(agenda.views) do
     if type(view.get_lines) == 'function' then
       local ok, lines = pcall(view.get_lines, view)
       if ok then
+        local current_group
         for _, line in ipairs(lines or {}) do
+          local day = line.metadata and line.metadata.agenda_day
+          if day then
+            current_group = {
+              date = day:to_string(),
+              headlines = {},
+            }
+            table.insert(date_groups, current_group)
+          end
+
           local headline = line.headline
           if headline then
             local key = headline.file.filename .. '\0' .. headline:get_range().start_line
             if not seen[key] then
               seen[key] = true
               table.insert(headlines, headline)
+            end
+            if current_group then
+              table.insert(current_group.headlines, headline)
             end
           end
         end
@@ -171,7 +185,11 @@ local function get_current_agenda_headlines()
     end
   end
 
-  return headlines
+  local groups = vim.tbl_filter(function(group)
+    return #group.headlines > 0
+  end, date_groups)
+
+  return headlines, groups
 end
 
 ---Open the agenda as a column view. When the current buffer is the agenda
@@ -184,9 +202,13 @@ function M.org_agenda_columns()
     return agenda:columns()
   end
 
-  local headlines = get_current_agenda_headlines()
+  local headlines, date_groups = get_current_agenda_headlines()
   if headlines then
-    return agenda:open_view('columns', { headlines = headlines })
+    local opts = { headlines = headlines }
+    if date_groups and #date_groups > 0 then
+      opts.date_groups = date_groups
+    end
+    return agenda:open_view('columns', opts)
   end
   return agenda:open_view('columns')
 end

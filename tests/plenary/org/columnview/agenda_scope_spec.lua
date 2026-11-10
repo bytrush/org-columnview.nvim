@@ -51,6 +51,47 @@ describe('Agenda column view scope', function()
     assert.are.same({ 'Renamed' }, column_titles)
   end)
 
+  it('shows per-date summary rows in the column view', function()
+    local orgmode = require('orgmode')
+    local today = os.date('%Y-%m-%d')
+    helpers.create_agenda_file({
+      '#+COLUMNS: %20ITEM %10SCORE{+}',
+      '',
+      '* First dated task',
+      '  <' .. today .. '>',
+      ':PROPERTIES:',
+      ':SCORE: 2',
+      ':END:',
+      '* Second dated task',
+      '  <' .. today .. '>',
+      ':PROPERTIES:',
+      ':SCORE: 3',
+      ':END:',
+    })
+
+    local columnview = require('org-columnview')
+    columnview.setup({ overriding_columns_format = '%20ITEM %10SCORE{+}' })
+
+    local agenda = orgmode.agenda
+    agenda:agenda():wait()
+    local promise = columnview.org_agenda_columns()
+    if promise then
+      promise:wait()
+    end
+
+    local rendered = {}
+    for _, line in ipairs(agenda.views[1]:get_lines()) do
+      table.insert(rendered, line:compile().content)
+    end
+    local content = table.concat(rendered, '\n')
+
+    assert.is_truthy(content:find(today, 1, true))
+    assert.is_truthy(content:find('5', 1, true))
+    assert.is_truthy(content:find('First dated task', 1, true))
+    assert.is_truthy(content:find('Second dated task', 1, true))
+    columnview.setup()
+  end)
+
   it('starts the agenda in columns view when configured', function()
     local orgmode = require('orgmode')
     local today = os.date('%Y-%m-%d')

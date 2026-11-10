@@ -108,6 +108,7 @@ end
 ---@field overriding_columns_format? string
 ---@field on_edit? fun(headline: OrgHeadline, setter: fun(headline: OrgHeadline))
 ---@field headlines? OrgHeadline[] Explicit rows, e.g. the entries of the current agenda view
+---@field date_groups? { date: string, headlines: OrgHeadline[] }[] Date-grouped agenda rows
 
 ---@class OrgAgendaColumnsType:OrgAgendaViewType
 ---@field files OrgFiles
@@ -129,6 +130,8 @@ end
 ---@field allowed_values table<string, string[]>
 ---@field headlines OrgHeadline[]
 ---@field _provided_headlines? OrgAgendaColumnsProvidedHeadline[]
+---@field _provided_date_groups? { date: string, headlines: OrgAgendaColumnsProvidedHeadline[] }[]
+---@field date_groups { date: string, start_index: number, end_index: number }[]
 ---@field _widths? number[]
 ---@field _base_format? string
 ---@field _columns_dirty? boolean
@@ -138,6 +141,18 @@ end
 ---@field view OrgAgendaView
 local OrgAgendaColumnsType = {}
 OrgAgendaColumnsType.__index = OrgAgendaColumnsType
+
+---@param headline OrgHeadline
+---@return OrgAgendaColumnsProvidedHeadline
+local function headline_ref(headline)
+  return {
+    headline = headline,
+    filename = headline.file.filename,
+    id = headline:get_property('id', false),
+    title = (headline:get_title()),
+    start_line = headline:get_range().start_line,
+  }
+end
 
 ---@param opts OrgAgendaColumnsTypeOpts
 function OrgAgendaColumnsType:new(opts)
@@ -161,15 +176,14 @@ function OrgAgendaColumnsType:new(opts)
     allowed_values = {},
     unrestricted_values = {},
     headlines = {},
-    _provided_headlines = opts.headlines and vim.tbl_map(function(headline)
+    _provided_headlines = opts.headlines and vim.tbl_map(headline_ref, opts.headlines) or nil,
+    _provided_date_groups = opts.date_groups and vim.tbl_map(function(group)
       return {
-        headline = headline,
-        filename = headline.file.filename,
-        id = headline:get_property('id', false),
-        title = (headline:get_title()),
-        start_line = headline:get_range().start_line,
+        date = group.date,
+        headlines = vim.tbl_map(headline_ref, group.headlines),
       }
-    end, opts.headlines) or nil,
+    end, opts.date_groups) or nil,
+    date_groups = {},
     _base_format = nil,
     _columns_dirty = false,
     current_row = 1,
@@ -352,7 +366,9 @@ end
 ---known but whose headline is gone is dropped; a row whose file is not loaded
 ---at all keeps the captured headline.
 ---@return OrgHeadline[]
-function OrgAgendaColumnsType:_resolve_provided_headlines()
+---@param provided? OrgAgendaColumnsProvidedHeadline[]
+---@return OrgHeadline[]
+function OrgAgendaColumnsType:_resolve_provided_headlines(provided)
   local files_by_name = {}
   for _, orgfile in ipairs(self.files:all()) do
     files_by_name[orgfile.filename] = orgfile
@@ -396,7 +412,7 @@ function OrgAgendaColumnsType:_resolve_provided_headlines()
     return filename .. '\0' .. headline:get_range().start_line
   end
 
-  local provided = self._provided_headlines or {}
+  provided = provided or self._provided_headlines or {}
   local claimed = {}
   local resolved = {}
 
@@ -473,12 +489,32 @@ function OrgAgendaColumnsType:_resolve_provided_headlines()
 end
 
 function OrgAgendaColumnsType:_collect_headlines()
+  if self._provided_date_groups and #self._provided_date_groups > 0 then
+    self.headlines = {}
+    self.date_groups = {}
+    for _, group in ipairs(self._provided_date_groups) do
+      local resolved = self:_resolve_provided_headlines(group.headlines)
+      if #resolved > 0 then
+        local start_index = #self.headlines + 1
+        vim.list_extend(self.headlines, resolved)
+        table.insert(self.date_groups, {
+          date = group.date,
+          start_index = start_index,
+          end_index = #self.headlines,
+        })
+      end
+    end
+    return
+  end
+
   if self._provided_headlines then
     self.headlines = self:_resolve_provided_headlines()
+    self.date_groups = {}
     return
   end
 
   self.headlines = {}
+  self.date_groups = {}
   for _, orgfile in ipairs(self.files:all()) do
     for i, headline in ipairs(orgfile:get_opened_headlines()) do
       if
@@ -552,16 +588,32 @@ function OrgAgendaColumnsType:_render()
   local widths = Cells.compute_widths(self.columns, function(headline, col)
     return self:_display_value(headline, col)
   end, self.headlines)
+  for col_idx, col in ipairs(self.columns) do
+    if col.name == 'ITEM' then
+      for _, group in ipairs(self.date_groups or {}) do
+        widths[col_idx] = math.min(math.max(widths[col_idx], vim.api.nvim_strwidth(group.date)), 50)
+      end
+    end
+  end
   self._widths = widths
 
   agendaView:add_line(self:_build_header_row(widths))
 
-  for _, headline in ipairs(self.headlines) do
-    agendaView:add_line(self:_build_row(headline, widths))
-  end
+  if #(self.date_groups or {}) > 0 and self:_has_date_summary_columns() then
+    for _, group in ipairs(self.date_groups) do
+      agendaView:add_line(self:_build_date_summary_row(group, widths))
+      for index = group.start_index, group.end_index do
+        agendaView:add_line(self:_build_row(self.headlines[index], widths))
+      end
+    end
+  else
+    for _, headline in ipairs(self.headlines) do
+      agendaView:add_line(self:_build_row(headline, widths))
+    end
 
-  if self:_has_summary_columns() then
-    agendaView:add_line(self:_build_summary_row(widths))
+    if self:_has_summary_columns() then
+      agendaView:add_line(self:_build_summary_row(widths))
+    end
   end
 
   self.view = agendaView:render()
@@ -626,6 +678,63 @@ function OrgAgendaColumnsType:_build_summary_row(widths)
     line:add_token(AgendaLineToken:new({
       content = ' ' .. Cells.fit(content, widths[col_idx]) .. ' ',
       hl_group = '@org.column.summary',
+    }))
+  end
+  line:add_token(AgendaLineToken:new({ content = '│', hl_group = '@org.column.border' }))
+  return line
+end
+
+---The operator used for a date-group summary. Emacs turns CLOCKSUM and
+---CLOCKSUM_T into duration sums on agenda date lines.
+---@param col OrgColumnSpec
+---@return string|nil
+function OrgAgendaColumnsType:_date_summary_operator(col)
+  if col.name == 'CLOCKSUM' or col.name == 'CLOCKSUM_T' then
+    return ':'
+  end
+  return col.summary_type
+end
+
+---@return boolean
+function OrgAgendaColumnsType:_has_date_summary_columns()
+  for _, col in ipairs(self.columns) do
+    if self:_date_summary_operator(col) then
+      return true
+    end
+  end
+  return false
+end
+
+---@param group { date: string, start_index: number, end_index: number }
+---@param widths number[]
+---@return OrgAgendaLine
+function OrgAgendaColumnsType:_build_date_summary_row(group, widths)
+  local line = AgendaLine:new({ separator = '' })
+  local headlines = {}
+  for index = group.start_index, group.end_index do
+    table.insert(headlines, self.headlines[index])
+  end
+
+  for col_idx, col in ipairs(self.columns) do
+    line:add_token(AgendaLineToken:new({ content = '│', hl_group = '@org.column.border' }))
+    local content = ''
+    local hl_group = '@org.column.summary'
+    if col.name == 'ITEM' then
+      content = group.date
+      hl_group = '@org.column.header'
+    else
+      local operator = self:_date_summary_operator(col)
+      if operator then
+        local values = {}
+        for _, headline in ipairs(headlines) do
+          table.insert(values, self:_cell_value(headline, col))
+        end
+        content = Cells.compute_summary(values, operator, col.format) or ''
+      end
+    end
+    line:add_token(AgendaLineToken:new({
+      content = ' ' .. Cells.fit(content, widths[col_idx]) .. ' ',
+      hl_group = hl_group,
     }))
   end
   line:add_token(AgendaLineToken:new({ content = '│', hl_group = '@org.column.border' }))

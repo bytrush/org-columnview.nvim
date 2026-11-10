@@ -377,7 +377,7 @@ parity nice-to-haves.
 | 7.1.3 | Summary write-back into the parent's property drawer (`org-columns-compute-all`, `org-compute-property-at-point`) | `org-colview.el:1364`, `org.el:13994` | opt-in `write_summaries`; writes the first column per property into existing parent properties (`view.lua:141`) | [DONE] |
 | 7.1.4 | User-defined summary operators (`org-columns-summary-types`) | `org-colview.el:88` | `summary_types` accepts summarize or summarize/collect definitions; custom operators are parsed, completed and collected (`summary.lua:44`, `parser.lua:277`, `cells.lua:46`) | [DONE] |
 | 7.1.5 | Allowed-values hook (`org-property-allowed-value-functions`) | `org.el:14007` | `allowed_value_functions` are consulted before `PROPERTY_ALL` (`compat.lua:117`, `config.lua:36`) | [DONE] |
-| 7.1.6 | Per-date-line summaries in a normal agenda (`org-agenda-colview-summarize`) | `org-colview.el:1819` | [N/A] the column view is a separate flat table (7.5.8), not an overlay with date lines |
+| 7.1.6 | Per-date-line summaries in a normal agenda (`org-agenda-colview-summarize`) | `org-colview.el:1819` | date-group summary rows are rendered from captured agenda date lines when a summary column exists (`agenda.lua:711`, `init.lua:142`) | [DONE] |
 | 7.1.7 | Recompute summaries in contributing buffers (`org-agenda-columns-compute-summary-properties`) | `org-colview.el:1883` | [N/A] summaries are computed from live headline data; there is no source-buffer summary cache to refresh |
 | 7.1.8 | Appointment duration counts toward `Effort` (`org-agenda-columns-add-appointments-to-effort-sum`) | `org-colview.el:1883` | [N/A] nvim-orgmode has no appointment/diary agenda entries |
 | 7.1.9 | Start the agenda in column view (`org-agenda-view-columns-initially`) | `org-agenda.el:2103` | `agenda_columns_initially` replaces a freshly opened agenda with the column view (`init.lua:315`) | [DONE] |
@@ -385,6 +385,34 @@ parity nice-to-haves.
 | 7.1.11 | Global column view via prefix argument (`C-u C-c C-x C-c`) | `org-colview.el:887` | a count prefix (`1<prefix>xc`, the Vim equivalent of `C-u`) opens the whole-file view (`init.lua:35`, `mappings.lua:179`) | [DONE] |
 | 7.1.12 | Configurable truncation marker (`org-columns-ellipses`, default `..`) | `org.el:3221` | `ellipsis` option, plugin default `…` (`cells.lua:233`) | [DONE] |
 | 7.1.13 | Configurable checkbox values (`org-columns-checkbox-allowed-values`) | `org-colview.el:62` | `checkbox_allowed_values` option, default `[ ]`/`[X]` (`view.lua:828`, `agenda.lua:885`) | [DONE] |
+
+#### 7.1.8 Notes: appointment duration in `Effort`
+
+Emacs option: `org-agenda-columns-add-appointments-to-effort-sum`, default
+`nil` (`org-agenda.el:2127`). When enabled and the agenda column view is
+collecting the `Effort` property (`org-effort-property`) for an entry with no
+`Effort` value, Emacs reads the `duration` text property from the agenda line
+(`org-colview.el:299-317`). Appointment lines get that property from the diary;
+if an appointment has no end time, `org-agenda-default-appointment-duration`
+is used, otherwise it contributes nothing. The value is formatted as an Org
+duration.
+
+nvim-orgmode currently has no appointment/diary agenda entries and
+`AgendaLine` has no duration metadata. To implement this, another agent should:
+
+1. Add appointment/diary entries (or an equivalent agenda source) in
+   nvim-orgmode and attach duration minutes to the agenda line metadata.
+2. Expose an `org_effort_property`-style option (currently `Effort` is
+   implicit) and an option matching
+   `org-agenda-columns-add-appointments-to-effort-sum`, default off.
+3. In the column view, keep the source `AgendaLine`/metadata available; today
+   rows are built from headlines only. This is the same prerequisite as 7.1.6.
+4. When collecting `Effort` for an agenda line with no property value, use the
+   line duration, formatted with `Duration.from_minutes(n):to_string('HH:MM')`
+   or the canonical Org duration format.
+5. Cover: start+end appointment, start-only with default duration, start-only
+   without default, non-`Effort` columns, and a real `Effort` property taking
+   precedence.
 
 ### 7.2 Editing semantics that diverge from Emacs
 
@@ -489,7 +517,7 @@ Parity plan (revisit with 7.1.4):
 | 7.5.4 | `delete_column` | asks for confirmation (`y-or-n-p`) | asks for confirmation with No as the default (`view.lua:1371`) | [DONE] |
 | 7.5.5 | `insert_column` (`org-columns-new`) | prompts for Property (with completion from buffer property keys), Title, Width, Summary (with completion) and Format | prompts the same fields, with property and summary completion (`view.lua:1310`, `parser.lua:44`, `summary.lua:42`) | [DONE] |
 | 7.5.6 | `edit_attributes` | same prompt set as `org-columns-new` | prompts the same fields and persists the format (`view.lua:1338`) | [DONE] |
-| 7.5.7 | `content`/`overview` | `org-cycle-content` / `org-cycle-overview` (toggle) | implemented with folding, `view.lua:642`, `view.lua:650` | [DROPPED] |
+| 7.5.7 | `content`/`overview` | `org-cycle-content` / `org-cycle-overview` (toggle) | implemented with folding, `view.lua:814`, `view.lua:822` | [DONE] |
 | 7.5.8 | Agenda column view | overlays the existing agenda buffer | separate agenda type `type = 'columns'` | [DROPPED] |
 | 7.5.9 | `ITEM` column | level stars (`* `), omitted in the agenda | indentation by two spaces per level | [DROPPED] |
 | 7.5.10 | `org-columns-move-row-up`/`-down` | moves the subtree and restores the column position | implemented, `view.lua:522` | [DONE] |
@@ -507,7 +535,7 @@ Ordered by value per effort; update the checkbox when an item ships.
 - [x] 7.1.4, 7.1.5 config hooks
 - [x] 7.3.2 Emacs-compatible format grammar (re-validate alongside 7.1.4)
 - [x] 7.1.1, 7.1.2 `BEGIN_COLUMNVIEW` block
-- [x] 7.1.6–7.1.9 agenda parity (7.1.6–7.1.8 N/A for the separate flat view, 7.1.9 done)
+- [x] 7.1.6 per-date summary rows (7.1.7–7.1.8 N/A, 7.1.9 done)
 - [x] 7.1.3, 7.4.3 summary write-back
 - [x] 7.2.7 `edit_allowed` storage format
 - [x] 7.1.10 skip archived trees

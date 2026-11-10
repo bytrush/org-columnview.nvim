@@ -51,7 +51,8 @@ orgmode instance.
   the cursor; a count prefix (`1<prefix>xu`) updates every block in the
   buffer.
 - `org_agenda_columns` (`<prefix>ac` by default) opens the agenda as a column
-  view.
+  view. When opened from the agenda, entries are grouped by date and each
+  group starts with a summary row.
 
 The prefix defaults to the prefix configured in nvim-orgmode
 (`mappings.prefix`, `<Leader>o` by default), so the defaults are `<Leader>oxc`

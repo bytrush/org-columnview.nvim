@@ -73,6 +73,8 @@ Entry points: >
                                          count prefix, update every block in
                                          the buffer.
     org_agenda_columns     <prefix>ac    Open the agenda as a column view.
+                                         Entries are grouped by date, with a
+                                         summary row for each date group.
 <
 The prefix is the one of nvim-orgmode (|orgmode-mappings|), `<Leader>o` by
 default, so the defaults are `<Leader>oxc` and `<Leader>oac`.

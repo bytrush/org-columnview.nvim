@@ -4,6 +4,8 @@
 # 2. Open the agenda with <prefix>oa, :Org agenda, or:
 #      :lua require('orgmode').agenda:agenda()
 # 3. The agenda must open directly as a table, not as the normal agenda list.
+#    Each date group starts with a summary row: ITEM is the date and SCORE is
+#    the sum for that day.
 # 4. Disable the option and reopen:
 #      :lua require('org-columnview').setup({ agenda_columns_initially = false })
 #    The agenda must render normally.
@@ -13,18 +15,20 @@
 # agenda (and therefore out of the initial column view).
 
 #+TITLE: Agenda initial columns demo
-#+COLUMNS: %20ITEM %10TODO %12SCHEDULED %10OWNER
+#+COLUMNS: %20ITEM %10TODO %12SCHEDULED %10OWNER %10SCORE{+}
 
 * TODO Today agenda task
 SCHEDULED: <2026-11-10 Tue>
 :PROPERTIES:
 :OWNER: Alice
+:SCORE: 2
 :END:
 
 * TODO Tomorrow agenda task
 SCHEDULED: <2026-11-11 Wed>
 :PROPERTIES:
 :OWNER: Bob
+:SCORE: 3
 :END:
 
 * Undated task
