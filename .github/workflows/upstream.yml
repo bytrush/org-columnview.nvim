@@ -1,0 +1,46 @@
+name: upstream
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  schedule:
+    # Weekly canary for nvim-orgmode master changes.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CI: true
+
+jobs:
+  tests-against-orgmode-master:
+    # The plugin must work with the nvim-orgmode master branch, not only with
+    # the version that a release happens to use.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Neovim
+        uses: rhysd/action-setup-vim@v1
+        id: neovim
+        with:
+          neovim: true
+          version: stable
+      - name: Checkout nvim-orgmode master
+        uses: actions/checkout@v7
+        with:
+          repository: nvim-orgmode/orgmode
+          path: .deps/orgmode
+          ref: master
+      - name: Run tests
+        env:
+          ORGMODE_PATH: ${{ github.workspace }}/.deps/orgmode
+        run: make test-ci

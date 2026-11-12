@@ -5,6 +5,14 @@ on:
     branches:
       - master
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CI: true
@@ -12,13 +20,14 @@ env:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: JohnnyMorganz/stylua-action@v4
+      - uses: actions/checkout@v7
+      - uses: JohnnyMorganz/stylua-action@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          version: latest
-            # CLI arguments
+          version: 2.6.0
+          # CLI arguments
           args: --check lua/ tests/
   tests:
     strategy:
@@ -34,8 +43,9 @@ jobs:
           - v0.12.5
           - nightly
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Neovim
         uses: rhysd/action-setup-vim@v1
         id: neovim
@@ -43,26 +53,4 @@ jobs:
           neovim: true
           version: ${{ matrix.version }}
       - name: Run tests
-        run: make test-ci
-  tests-against-orgmode-master:
-    # The plugin must work with the nvim-orgmode master branch, not only with
-    # a version that has the column view support.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Neovim
-        uses: rhysd/action-setup-vim@v1
-        id: neovim
-        with:
-          neovim: true
-          version: v0.12.5
-      - name: Checkout nvim-orgmode master
-        uses: actions/checkout@v4
-        with:
-          repository: nvim-orgmode/orgmode
-          path: .deps/orgmode
-          ref: master
-      - name: Run tests
-        env:
-          ORGMODE_PATH: ${{ github.workspace }}/.deps/orgmode
         run: make test-ci
