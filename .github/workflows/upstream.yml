@@ -43,4 +43,4 @@ jobs:
       - name: Run tests
         env:
           ORGMODE_PATH: ${{ github.workspace }}/.deps/orgmode
-        run: make test-ci
+        run: make test

@@ -23,6 +23,8 @@ buffer, like in Emacs.
 ==============================================================================
 2. REQUIREMENTS                                       *org-columnview-requirements*
 
+Neovim 0.12.0 or newer is required.
+
 nvim-orgmode is required for the org file, headline and agenda handling:
 
   https://github.com/nvim-orgmode/orgmode

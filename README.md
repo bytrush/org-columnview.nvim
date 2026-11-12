@@ -8,9 +8,10 @@ of an org buffer and renders the agenda as a table of columns. Values can be
 edited in place, and the column layout can be changed and is written back to the
 buffer, like in Emacs.
 
-This plugin requires [nvim-orgmode](https://github.com/nvim-orgmode/orgmode) for
-the org file, headline and agenda handling. It works with the `master` branch
-of nvim-orgmode; no patches are needed.
+This plugin requires Neovim 0.12.0 or newer and
+[nvim-orgmode](https://github.com/nvim-orgmode/orgmode) for the org file,
+headline and agenda handling. It works with the `master` branch of
+nvim-orgmode; no patches are needed.
 
 The plugin uses a few internal modules of nvim-orgmode (`orgmode.files`,
 `orgmode.config`, `orgmode.agenda.view.*`, `orgmode.objects.*`,
